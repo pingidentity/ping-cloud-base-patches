@@ -7,26 +7,6 @@ patches:
       kind: ConfigMap
       metadata:
         name: nginx-configuration
-        namespace: ingress-nginx-private
-      data:
-        log-format-upstream: '$remote_addr $host $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $request_length $request_time [$proxy_upstream_name] [$proxy_alternative_upstream_name] $upstream_addr $upstream_response_length $upstream_response_time $upstream_status $req_id'
-        location-snippet: |
-          # Block PingAccess and PingFederate heartbeat endpoints.
-          # Only block successful 200 status codes. Do nothing in the event of an error.
-          if ($request_uri ~* "^/(pa|pf)/heartbeat.ping") {
-            body_filter_by_lua_block {
-              if ngx.status == ngx.HTTP_OK then
-                ngx.arg[1] = '{}'  -- Replace the response body with an empty JSON object
-                ngx.arg[2] = true  -- Indicate that this is the last chunk within response body
-              end
-            }
-          }
-
-  - patch: |-
-      apiVersion: v1
-      kind: ConfigMap
-      metadata:
-        name: nginx-configuration
         namespace: ingress-nginx-public
       data:
         main-snippet: load_module /usr/lib/nginx/modules/ngx_http_sigsci_module.so;
@@ -35,14 +15,3 @@ patches:
         ssl-ciphers: ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384
         ssl-dh-param: ingress-nginx-public/dhparam
         log-format-upstream: '$remote_addr $host $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $request_length $request_time [$proxy_upstream_name] [$proxy_alternative_upstream_name] $upstream_addr $upstream_response_length $upstream_response_time $upstream_status $req_id'
-        location-snippet: |
-          # Block PingAccess and PingFederate heartbeat endpoints.
-          # Only block successful 200 status codes. Do nothing in the event of an error.
-          if ($request_uri ~* "^/(pa|pf)/heartbeat.ping") {
-            body_filter_by_lua_block {
-              if ngx.status == ngx.HTTP_OK then
-                ngx.arg[1] = '{}'  -- Replace the response body with an empty JSON object
-                ngx.arg[2] = true  -- Indicate that this is the last chunk within response body
-              end
-            }
-          }
