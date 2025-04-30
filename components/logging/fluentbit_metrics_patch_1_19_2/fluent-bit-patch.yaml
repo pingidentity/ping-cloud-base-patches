@@ -1,0 +1,9 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluent-bit
+spec:
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: "/api/v2/metrics/prometheus"
