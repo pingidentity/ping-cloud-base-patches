@@ -1,0 +1,42 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+patches:
+  # Kustomize patching in base 2.0 release resulted in missing nlb annotation for just the ingress-nginx-private service
+  # Original defect: PDO-9671
+  - patch: |-
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: ingress-nginx
+        namespace: ingress-nginx-private
+        annotations:
+          service.beta.kubernetes.io/aws-load-balancer-type: nlb
+
+  # PingCentral requires the heartbeat endpoints to respond properly, which includes the content length header removed if we change the content
+  # Original defect: PDO-9687
+  - patch: |-
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: nginx-configuration
+        namespace: ingress-nginx-private
+      data:
+        location-snippet: |
+          # location-snippet allows you to override all location directives in nginx
+          # https://docs.nginx.com/nginx-ingress-controller/configuration/global-configuration/configmap-resource/#snippets-and-custom-templates
+          # Block PingAccess and PingFederate heartbeat endpoints.
+          # Only block successful 200 status codes. Do nothing in the event of an error.
+          if ($request_uri ~* "^/(pa|pf)/heartbeat.ping") {
+            header_filter_by_lua_block {
+              if ngx.status == ngx.HTTP_OK then
+                ngx.header.content_length = nil
+              end
+            }
+            body_filter_by_lua_block {
+              if ngx.status == ngx.HTTP_OK then
+                ngx.arg[1] = '{}'  -- Replace the response body with an empty JSON object
+                ngx.arg[2] = true  -- Indicate that this is the last chunk within response body
+              end
+            }
+          }
