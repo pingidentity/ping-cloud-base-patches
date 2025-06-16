@@ -1,0 +1,15 @@
+_meta:
+  type: "rolesmapping"
+  config_version: 2
+
+reports_full_access:
+  reserved: true
+  backend_roles:
+  - "${pingAdminRole}"
+  - "${configTeamRole}"
+
+query_save_export:
+  reserved: false
+  backend_roles:
+  - "${pingAdminRole}"
+  - "${configTeamRole}"
