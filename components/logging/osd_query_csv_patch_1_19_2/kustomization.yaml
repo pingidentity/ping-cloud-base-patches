@@ -3,5 +3,3 @@ kind: Kustomization
 
 resources:
   - roles.yml
-  - roles_mapping.yml
-
