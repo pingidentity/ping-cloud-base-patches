@@ -1,0 +1,10 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: os-controller-manager
+spec:
+  template:
+    spec:
+      initContainers:
+        - name: p1as-oauth
+          image: 705370621539.dkr.ecr.us-west-2.amazonaws.com/pingcloud-services/p14c-integration:triage-prom-auth
