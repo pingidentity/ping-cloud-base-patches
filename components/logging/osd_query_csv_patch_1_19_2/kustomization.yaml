@@ -4,6 +4,7 @@ kind: Component
 secretGenerator:
   - name: opensearch-securityconfig
     namespace: elastic-stack-logging
+    behavior: replace
     type: Opaque
     files:
       - action_groups.yml
