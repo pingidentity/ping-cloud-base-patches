@@ -3,5 +3,7 @@ kind: OpenSearchCluster
 metadata:
   name: opensearch-cluster
   namespace: elastic-stack-logging
-  annotations:
-    prometheus.io/scrape_auth: "true"
+spec:
+  general:
+    annotations:
+      prometheus.io/scrape_auth: "true"
