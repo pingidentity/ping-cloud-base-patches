@@ -1,5 +1,20 @@
-kind: Component
-apiVersion: kustomize.config.k8s.io/v1alpha1
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
 
-patchesStrategicMerge:
-  - roles-patch.yaml
+secretGenerator:
+  - name: opensearch-securityconfig
+    namespace: elastic-stack-logging
+    type: Opaque
+    files:
+      - action_groups.yml
+      - allowlist.yml
+      - audit.yml
+      - config.yml
+      - internal_users.yml
+      - nodes_dn.yml
+      - roles.yml
+      - roles_mapping.yml
+      - tenants.yml
+
+generatorOptions:
+  disableNameSuffixHash: true
