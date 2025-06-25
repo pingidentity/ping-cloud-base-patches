@@ -7,3 +7,5 @@ spec:
   general:
     annotations:
       prometheus.io/scrape_auth: "true"
+      prometheus.io/scrape: "false"
+
