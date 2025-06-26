@@ -10,5 +10,5 @@ patches:
       namespace: elastic-stack-logging
     patch: |-
       - op: replace
-        path: /spec/template/spec/initContainers/name=p1as-oauth/image
+        path: /spec/template/spec/initContainers/1/image
         value: public.ecr.aws/r2h3l6e4/pingcloud-services/p14c-integration:1.19.2-role-query-patch
