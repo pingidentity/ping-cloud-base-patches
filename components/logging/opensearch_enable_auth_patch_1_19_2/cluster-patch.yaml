@@ -8,4 +8,8 @@ spec:
     annotations:
       prometheus.io/scrape_auth: "true"
       prometheus.io/scrape: "false"
+  dashboards:
+    additionalConfig:
+      opensearch_security.auth.anonymous_auth_enabled: "false"
+
 
