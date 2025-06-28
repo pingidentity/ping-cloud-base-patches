@@ -11,3 +11,6 @@ secretGenerator:
 
 generatorOptions:
   disableNameSuffixHash: true
+
+patchesStrategicMerge:
+  - controller-manager-patch.yaml
