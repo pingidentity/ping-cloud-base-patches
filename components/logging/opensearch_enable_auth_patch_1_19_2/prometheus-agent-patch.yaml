@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-agent
+  namespace: prometheus
+spec:
+  template:
+    spec:
+      volumes:
+      - name: prometheus-config-volume
+        configMap:
+          name: prometheus-agent-config
+      - name: os-creds
+        secret:
+          secretName: opensearch-grafana-credentials       
+          items:
+            - key: password
+              path: os-password     
+      containers:
+        - name: prometheus
+          volumeMounts:
+            - name: os-creds
+              mountPath: /etc/secrets
+              readOnly: true            
