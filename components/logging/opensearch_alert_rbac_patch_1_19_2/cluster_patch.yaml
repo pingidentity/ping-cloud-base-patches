@@ -1,0 +1,13 @@
+apiVersion: opensearch.opster.io/v1
+kind: OpenSearchCluster
+metadata:
+  name: opensearch-cluster
+spec:
+  general:
+    additionalConfig:
+      node.search.cache.size: 500m
+      cluster.max_shards_per_node: "10000"
+      prometheus.indices: "false"
+      reindex.remote.allowlist: "localhost:9200"
+      plugins.alerting.filter_by_backend_roles: "false"
+      opensearch.notifications.general.filter_by_backend_roles: "false"
