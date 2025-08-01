@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+secretGenerator:
+  - name: opensearch-securityconfig
+    namespace: elastic-stack-logging
+    behavior: merge
+    type: Opaque
+    files:
+      - roles.yml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+patchesStrategicMerge:
+  - controller-manager-patch.yaml
