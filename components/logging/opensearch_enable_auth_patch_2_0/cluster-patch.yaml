@@ -1,0 +1,11 @@
+apiVersion: opensearch.opster.io/v1
+kind: OpenSearchCluster
+metadata:
+  name: opensearch-cluster
+  namespace: elastic-stack-logging
+spec:
+  general:
+    annotations:
+      prometheus.io/scrape_auth: "true"
+      prometheus.io/scrape: "false"
+
