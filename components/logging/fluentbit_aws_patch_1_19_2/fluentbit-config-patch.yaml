@@ -3,7 +3,7 @@ kind: ConfigMap
 metadata:
   name: fluent-bit-config
   namespace: elastic-stack-logging
-$patch: replace
+$patch: merge
 data:
 fluent-bit.conf: |-
   [SERVICE]
