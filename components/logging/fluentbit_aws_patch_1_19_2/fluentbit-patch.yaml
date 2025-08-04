@@ -19,16 +19,16 @@ spec:
             exec /entrypoint.sh -c /fluent-bit/etc/fluent-bit.conf
 
         env:
-        - name: S3_BUCKET
-          valueFrom:
-            configMapKeyRef:
-              key: bucketName
-              name: s3-raw-logs-bucket
-        - name: AWS_REGION
-          valueFrom:
-            configMapKeyRef:
-              name: cluster-info
-              key: logs.region
+          - name: S3_BUCKET
+            valueFrom:
+              configMapKeyRef:
+                name: s3-raw-logs-bucket
+                key: bucketName
+          - name: AWS_REGION
+            valueFrom:
+              configMapKeyRef:
+                name: cluster-info
+                key: logs.region
 
         volumeMounts:
         - name: fluent-bit-pipeline-s3
@@ -36,11 +36,31 @@ spec:
         - name: fluent-bit-pipeline-customer
           $patch: delete
 
+        - name: fluent-bit-config
+          mountPath: /fluent-bit/etc/fluent-bit.conf
+          subPath: fluent-bit.conf
+        - name: fluent-bit-parsers
+          mountPath: /fluent-bit/etc/parsers.conf
+          subPath: parsers.conf
+        - name: fluent-bit-pipeline-elk
+          mountPath: /fluent-bit/etc/elk.conf
+          subPath: elk.conf
+
       volumes:
       - name: fluent-bit-pipeline-s3
         $patch: delete
       - name: fluent-bit-pipeline-customer
         $patch: delete
+
+      - name: fluent-bit-config
+        configMap:
+          name: fluent-bit-config
+      - name: fluent-bit-parsers
+        configMap:
+          name: fluent-bit-parsers
+      - name: fluent-bit-pipeline-elk
+        configMap:
+          name: fluent-bit-pipeline-elk
 ---
 apiVersion: v1
 kind: ConfigMap
