@@ -3,6 +3,7 @@ kind: ConfigMap
 metadata:
   name: fluent-bit-config
   namespace: elastic-stack-logging
+$patch: merge
 data:
   fluent-bit.conf: |-
     [SERVICE]
@@ -22,4 +23,4 @@ data:
         HTTP_Port    2020
         Health_Check On
 
-    @INCLUDE pipelines.conf
+    @INCLUDE elk.conf
