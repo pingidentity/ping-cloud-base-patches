@@ -11,12 +11,12 @@ spec:
         image: public.ecr.aws/r2h3l6e4/pingcloud-clustertools/amazon/aws-for-fluent-bit:2.31.7
 
         command:
-        - /bin/sh
+          - /bin/sh
         args:
-        - -c
-        - |
-          export S3_BUCKET_NAME="${S3_BUCKET#s3://}"; \
-          exec /entrypoint.sh
+          - -c
+          - |
+            export S3_BUCKET_NAME="${S3_BUCKET#s3://}"; \
+            exec /entrypoint.sh -c /fluent-bit/etc/fluent-bit.conf
 
         env:
         - name: S3_BUCKET
