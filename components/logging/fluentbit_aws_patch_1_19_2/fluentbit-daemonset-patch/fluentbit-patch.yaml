@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluent-bit
+  namespace: elastic-stack-logging
+spec:
+  template:
+    spec:
+      containers:
+      - name: fluent-bit
+        image: public.ecr.aws/r2h3l6e4/pingcloud-clustertools/amazon/aws-for-fluent-bit:2.31.7
+
+        volumeMounts:
+        - name: fluent-bit-pipeline-s3
+          $patch: delete
+        - name: fluent-bit-pipeline-customer
+          $patch: delete
+
+      volumes:
+      - name: fluent-bit-pipeline-s3
+        $patch: delete
+      - name: fluent-bit-pipeline-customer
+        $patch: delete

@@ -1,0 +1,14 @@
+kind: Component
+apiVersion: kustomize.config.k8s.io/v1alpha1
+
+generatorOptions:
+  labels:
+    k8s-app: fluent-bit
+
+configMapGenerator:
+  - name: fluent-bit-pipeline-elk
+    files:
+      - pipelines.conf
+
+patchesStrategicMerge:
+  - fluentbit-config-patch.yaml
