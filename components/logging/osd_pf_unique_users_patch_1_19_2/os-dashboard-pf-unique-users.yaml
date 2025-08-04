@@ -1,0 +1,22 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: opensearch-bootstrap
+spec:
+  template:
+    spec:
+      containers:
+      - name: opensearch-bootstrap
+        image: 705370621539.dkr.ecr.us-west-2.amazonaws.com/pingcloud-monitoring/os-bootstrap:pdo-10029-user-count
+        env:
+        - name: OSD_ISM_PF_AUDIT
+          value: "45d"
+        volumeMounts:
+        - mountPath: /usr/share/opensearch/data/dashboards/pf-users
+          name: os-dashboards-pf-unique-users
+      volumes:
+      - name: os-dashboards-pf-unique-users
+        configMap:
+          name: os-dashboard-pf-unique-users
+
