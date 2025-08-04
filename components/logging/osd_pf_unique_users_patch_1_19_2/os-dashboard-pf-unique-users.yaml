@@ -1,6 +1,8 @@
 ---
 apiVersion: batch/v1
 kind: Job
+metadata:
+  name: opensearch-bootstrap
 spec:
   template:
     spec:
@@ -10,7 +12,7 @@ spec:
         - name: OSD_ISM_PF_AUDIT
           value: "45d"
         volumeMounts:
-        - mountPath: /usr/share/opensearch/data/dashboards/pf
+        - mountPath: /usr/share/opensearch/data/dashboards/pf-users
           name: os-dashboards-pf-unique-users
       volumes:
       - name: os-dashboards-pf-unique-users
