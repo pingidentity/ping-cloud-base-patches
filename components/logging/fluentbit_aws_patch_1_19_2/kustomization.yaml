@@ -1,6 +1,24 @@
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
 
-resources:
-  - fluentbit-config-patch/
-  - fluentbit-daemonset-patch/
+generatorOptions:
+  labels:
+    k8s-app: fluent-bit
+
+configMapGenerator:
+  - name: fluent-bit-pipeline-elk
+    files:
+      - pipelines.conf
+
+patches:
+  - path: fluentbit-config-patch.yaml
+    target:
+      kind: ConfigMap
+      name: fluent-bit-config
+      namespace: elastic-stack-logging
+
+  - path: fluentbit-patch.yaml
+    target:
+      kind: DaemonSet
+      name: fluent-bit
+      namespace: elastic-stack-logging
