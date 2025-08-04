@@ -10,12 +10,20 @@ spec:
       - name: fluent-bit
         image: public.ecr.aws/r2h3l6e4/pingcloud-clustertools/amazon/aws-for-fluent-bit:2.31.7
 
+        command:
+        - /bin/sh
+        args:
+        - -c
+        - |
+          export S3_BUCKET_NAME="${S3_BUCKET#s3://}"; \
+          exec /entrypoint.sh
+
         env:
         - name: S3_BUCKET
           valueFrom:
             configMapKeyRef:
-              name: s3-raw-logs-bucket
               key: bucketName
+              name: s3-raw-logs-bucket
         - name: AWS_REGION
           valueFrom:
             configMapKeyRef:
@@ -33,3 +41,17 @@ spec:
         $patch: delete
       - name: fluent-bit-pipeline-customer
         $patch: delete
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluent-bit-pipeline-s3
+  namespace: elastic-stack-logging
+$patch: delete
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluent-bit-pipeline-customer
+  namespace: elastic-stack-logging
+$patch: delete
