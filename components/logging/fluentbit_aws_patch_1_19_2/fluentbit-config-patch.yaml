@@ -14,6 +14,7 @@ data:
         storage.sync              normal
         storage.checksum          off
         storage.backlog.mem_limit 1500M
+        storage.total_limit_size  100M
         storage.max_chunks_up     2000
         storage.metrics           on
         scheduler.base            3
@@ -22,10 +23,5 @@ data:
         HTTP_Listen               0.0.0.0
         HTTP_Port                 2020
         Health_Check              On
-
-    [EMITTER]
-        Name                  emitter
-        storage.type          filesystem
-        storage.total_limit_size 100M
 
     @INCLUDE elk.conf
