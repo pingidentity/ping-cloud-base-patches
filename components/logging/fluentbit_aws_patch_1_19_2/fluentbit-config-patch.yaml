@@ -13,8 +13,7 @@ data:
         storage.path              /fluent-bit/state/flb-storage/
         storage.sync              normal
         storage.checksum          off
-        storage.backlog.mem_limit 1500M
-        storage.total_limit_size  100M
+        storage.backlog.mem_limit 200M
         storage.max_chunks_up     2000
         storage.metrics           on
         scheduler.base            3
