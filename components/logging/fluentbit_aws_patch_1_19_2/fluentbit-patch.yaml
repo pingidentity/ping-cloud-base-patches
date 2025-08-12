@@ -5,6 +5,9 @@ metadata:
   namespace: elastic-stack-logging
 spec:
   template:
+    metadata:
+      annotations:
+        newrelic.io/scrape: "true"
     spec:
       containers:
       - name: fluent-bit
