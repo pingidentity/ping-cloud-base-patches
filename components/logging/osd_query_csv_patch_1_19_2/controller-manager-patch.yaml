@@ -7,5 +7,6 @@ spec:
   template:
     spec:
       initContainers:
+        - name: p1as-bootstrap
         - name: p1as-oauth
           image: public.ecr.aws/r2h3l6e4/pingcloud-services/p14c-integration:v1.19.2.1
