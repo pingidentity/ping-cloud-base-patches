@@ -1,0 +1,11 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: opensearch-bootstrap
+spec:
+  backoffLimit: 10
+  template:
+    spec:
+      containers:
+      - name: opensearch-bootstrap
+        image: public.ecr.aws/r2h3l6e4/pingcloud-monitoring/os-bootstrap/dev:v1.19.2.2
