@@ -1,0 +1,64 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: pingfederate
+        namespace: ping-cloud
+      spec:
+        template:
+          spec:
+            containers:
+            - name: pingfederate
+              resources:
+                limits:
+                  memory: "17Gi"
+                  cpu: 6
+                requests:
+                  memory: "17Gi"
+                  cpu: 4
+              livenessProbe:
+                initialDelaySeconds: 180
+              readinessProbe:
+                initialDelaySeconds: 180
+  - patch: |-
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: pingfederate-admin
+        namespace: ping-cloud
+      spec:
+        template:
+          spec:
+            containers:
+            - name: pingfederate-admin
+              resources:
+                limits:
+                  memory: "17Gi"
+                  cpu: 6
+                requests:
+                  memory: "17Gi"
+                  cpu: 4
+  - patch: |-
+      apiVersion: autoscaling/v2
+      kind: HorizontalPodAutoscaler
+      metadata:
+        name: pingfederate
+        namespace: ping-cloud
+      spec:
+        minReplicas: 6
+        maxReplicas: 20
+        scaleTargetRef:
+          apiVersion: apps/v1
+          kind: StatefulSet
+          name: pingfederate
+        metrics:
+        - type: Resource
+          resource:
+            name: cpu
+            target:
+              type: Utilization
+              averageUtilization: 50
