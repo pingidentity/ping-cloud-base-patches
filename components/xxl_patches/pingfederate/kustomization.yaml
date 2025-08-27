@@ -43,7 +43,7 @@ patches:
                   memory: "17Gi"
                   cpu: 4
   - patch: |-
-      apiVersion: autoscaling/v1
+      apiVersion: autoscaling/v2
       kind: HorizontalPodAutoscaler
       metadata:
         name: pingfederate
@@ -55,10 +55,4 @@ patches:
           apiVersion: apps/v1
           kind: StatefulSet
           name: pingfederate
-        metrics:
-        - type: Resource
-          resource:
-            name: cpu
-            target:
-              type: Utilization
-              averageUtilization: 50
+        targetCPUUtilizationPercentage:50
