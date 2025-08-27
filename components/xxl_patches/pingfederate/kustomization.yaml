@@ -55,4 +55,10 @@ patches:
           apiVersion: apps/v1
           kind: StatefulSet
           name: pingfederate
-        targetCPUUtilizationPercentage:50
+        metrics:
+        - type: Resource
+          resource:
+            name: cpu
+            target:
+              type: Utilization
+              averageUtilization: 50
