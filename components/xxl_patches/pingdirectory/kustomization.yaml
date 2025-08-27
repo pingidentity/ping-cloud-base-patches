@@ -6,6 +6,7 @@ patches:
       apiVersion: apps/v1
       kind: StatefulSet
       metadata:
+        namespace: ping-cloud
         name: pingdirectory
       spec:
         replicas: 6
