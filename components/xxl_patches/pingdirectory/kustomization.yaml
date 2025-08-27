@@ -1,0 +1,36 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: pingdirectory
+        namespace: ping-cloud
+      spec:
+        replicas: 6
+        template:
+          spec:
+            containers:
+            - name: pingdirectory
+              resources:
+                requests:
+                  memory: "110Gi"
+                  cpu: "14"
+                limits:
+                  memory: "110Gi"
+        volumeClaimTemplates:
+        - metadata:
+            name: out-dir
+            labels:
+              app: ping-cloud
+              role: pingdirectory
+              class: pingdirectory-server
+          spec:
+            accessModes:
+            - ReadWriteOnce
+            storageClassName: pingdirectory-gp3
+            resources:
+              requests:
+                storage: 1800Gi

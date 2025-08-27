@@ -1,0 +1,40 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+patches:
+  - patch: |-
+      apiVersion: autoscaling/v2
+      kind: HorizontalPodAutoscaler
+      metadata:
+        name: nginx-ingress-controller
+        namespace: ingress-nginx-private
+      spec:
+        minReplicas: 3
+        maxReplicas: 6
+  - patch: |-
+      apiVersion: autoscaling/v2
+      kind: HorizontalPodAutoscaler
+      metadata:
+        name: nginx-ingress-controller
+        namespace: ingress-nginx-public
+      spec:
+        minReplicas: 6
+        maxReplicas: 9
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: nginx-ingress-controller
+        namespace: ingress-nginx-private
+      spec:
+        template:
+          spec:
+            containers:
+            - name: nginx-ingress-controller
+              resources:
+                limits:
+                  cpu: 2
+                  memory: 3Gi
+                requests:
+                  cpu: 2
+                  memory: 3Gi
