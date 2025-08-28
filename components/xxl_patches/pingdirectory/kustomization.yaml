@@ -20,6 +20,7 @@ patches:
                   cpu: "14"
                 limits:
                   memory: "110Gi"
+                  cpu: "14"
         volumeClaimTemplates:
         - metadata:
             name: out-dir
