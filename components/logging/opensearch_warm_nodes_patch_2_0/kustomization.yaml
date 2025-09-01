@@ -1,6 +1,0 @@
-kind: Component
-apiVersion: kustomize.config.k8s.io/v1alpha1
-
-patchesStrategicMerge:
-  - cluster_patch.yaml
-  - os_bootstrap_patch.yaml
