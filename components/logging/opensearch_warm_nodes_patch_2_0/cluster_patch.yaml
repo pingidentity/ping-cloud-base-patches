@@ -1,0 +1,8 @@
+apiVersion: opensearch.opster.io/v1
+kind: OpenSearchCluster
+metadata:
+  name: opensearch-cluster
+spec:
+  nodePools:
+    - component: warm
+      $patch: delete
