@@ -1,0 +1,22 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: opensearch-bootstrap
+spec:
+  template:
+    spec:
+      containers:
+      - name: opensearch-bootstrap
+        image: public.ecr.aws/r2h3l6e4/pingcloud-monitoring/os-bootstrap:v1.19.2.2
+        env:
+        - name: OSD_ISM_PF_AUDIT
+          value: "45d"
+        volumeMounts:
+        - mountPath: /usr/share/opensearch/data/dashboards/pf-users
+          name: os-dashboards-pf-unique-users
+      volumes:
+      - name: os-dashboards-pf-unique-users
+        configMap:
+          name: os-dashboard-pf-unique-users
+
