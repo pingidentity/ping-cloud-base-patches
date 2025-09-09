@@ -9,18 +9,18 @@ patches:
         name: pingdirectory
         namespace: ping-cloud
       spec:
-        replicas: 6
+        replicas: 3
         template:
           spec:
             containers:
             - name: pingdirectory
               resources:
                 requests:
-                  memory: "110Gi"
-                  cpu: "14"
+                  memory: "220Gi"
+                  cpu: "28"
                 limits:
-                  memory: "110Gi"
-                  cpu: "14"
+                  memory: "220Gi"
+                  cpu: "28"
         volumeClaimTemplates:
         - metadata:
             name: out-dir
