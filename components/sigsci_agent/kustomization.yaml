@@ -8,7 +8,21 @@ patches:
         value:
           name: SIGSCI_MAX_PROCS
           value: "100%"
+      - op: replace
+        path: /spec/template/spec/containers/resources/limits/cpu
+        value: "2"
+      - op: replace
+        path: /spec/template/spec/containers/resources/requests/cpu
+        value: "2"
     target:
       kind: Deployment
+      name: nginx-ingress-controller
+      namespace: ingress-nginx-public
+  - patch: |-
+      - op: replace
+        path: /spec/metrics/0/resource/targetAverageUtilization
+        value: "40"
+    target:
+      kind: HorizontalPodAutoscaler
       name: nginx-ingress-controller
       namespace: ingress-nginx-public
