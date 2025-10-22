@@ -21,7 +21,7 @@ patches:
   - patch: |-
       - op: replace
         path: /spec/metrics/0/resource/target/averageUtilization
-        value: "40"
+        value: 40
     target:
       kind: HorizontalPodAutoscaler
       name: nginx-ingress-controller
