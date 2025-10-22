@@ -9,10 +9,10 @@ patches:
           name: SIGSCI_MAX_PROCS
           value: "100%"
       - op: replace
-        path: /spec/template/spec/containers/resources/limits/cpu
+        path: /spec/template/spec/containers/0/resources/limits/cpu
         value: "2"
       - op: replace
-        path: /spec/template/spec/containers/resources/requests/cpu
+        path: /spec/template/spec/containers/0/resources/requests/cpu
         value: "2"
     target:
       kind: Deployment
@@ -20,7 +20,7 @@ patches:
       namespace: ingress-nginx-public
   - patch: |-
       - op: replace
-        path: /spec/metrics/0/resource/targetAverageUtilization
+        path: /spec/metrics/0/resource/target/averageUtilization
         value: "40"
     target:
       kind: HorizontalPodAutoscaler
