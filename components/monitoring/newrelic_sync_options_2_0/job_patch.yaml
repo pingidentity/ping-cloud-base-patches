@@ -1,0 +1,21 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: nri-bundle-nri-metadata-injection-admission-create
+  namespace: newrelic
+  annotations:
+    helm.sh/hook: null
+    helm.sh/hook-delete-policy: null
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: nri-bundle-nri-metadata-injection-admission-patch
+  namespace: newrelic
+  annotations:
+    helm.sh/hook: null
+    helm.sh/hook-delete-policy: null
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
