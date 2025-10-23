@@ -9,10 +9,10 @@ patches:
           name: SIGSCI_MAX_PROCS
           value: "100%"
       - op: replace
-        path: /spec/template/spec/containers/0/resources/limits/cpu
+        path: /spec/template/spec/containers/1/resources/limits/cpu
         value: "2"
       - op: replace
-        path: /spec/template/spec/containers/0/resources/requests/cpu
+        path: /spec/template/spec/containers/1/resources/requests/cpu
         value: "2"
     target:
       kind: Deployment
