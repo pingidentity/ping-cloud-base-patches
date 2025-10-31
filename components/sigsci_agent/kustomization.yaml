@@ -1,0 +1,28 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+patches:
+  - patch: |-
+      - op: add
+        path: /spec/template/spec/containers/1/env/-
+        value:
+          name: SIGSCI_MAX_PROCS
+          value: "100%"
+      - op: replace
+        path: /spec/template/spec/containers/1/resources/limits/cpu
+        value: 2
+      - op: replace
+        path: /spec/template/spec/containers/1/resources/requests/cpu
+        value: 2
+    target:
+      kind: Deployment
+      name: nginx-ingress-controller
+      namespace: ingress-nginx-public
+  - patch: |-
+      - op: replace
+        path: /spec/metrics/0/resource/target/averageUtilization
+        value: 40
+    target:
+      kind: HorizontalPodAutoscaler
+      name: nginx-ingress-controller
+      namespace: ingress-nginx-public
