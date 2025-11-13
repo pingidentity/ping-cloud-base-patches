@@ -3,3 +3,7 @@ kind: Component
 
 patchesStrategicMerge:
   - os-dashboard-pf-unique-users.yaml
+
+images:
+- name: public.ecr.aws/r2h3l6e4/pingcloud-monitoring/os-bootstrap
+  newTag: v1.19.2.3
