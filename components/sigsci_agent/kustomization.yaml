@@ -6,8 +6,10 @@ patches:
       - op: add
         path: /spec/template/spec/containers/1/env/-
         value:
+          # Must match the CPU given to it via requests, manually, instead of 100%
+          # cgroups break in Amazon Linux 2023+, SigSci is aware
           name: SIGSCI_MAX_PROCS
-          value: "100%"
+          value: 2
       - op: replace
         path: /spec/template/spec/containers/1/resources/limits/cpu
         value: 2
