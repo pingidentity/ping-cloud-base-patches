@@ -8,4 +8,4 @@ spec:
     spec:
       containers:
       - name: opensearch-bootstrap
-        image: public.ecr.aws/r2h3l6e4/pingcloud-monitoring/os-bootstrap:v1.19.2.3
+        image: 705370621539.dkr.ecr.us-west-2.amazonaws.com/pingcloud-monitoring/os-bootstrap:pdo-10576-os@sha256:efe16a49f489fef005feb38362bf36eba1f3a5d381b3de93fef4ddc4ea4b3a17
