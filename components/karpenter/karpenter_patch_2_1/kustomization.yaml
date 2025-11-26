@@ -1,6 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
 
+# v2.1 Karpenter EKS 1.33 patch to use AL2023 AMI family
 patches:
   - target:
       group: karpenter.k8s.aws
