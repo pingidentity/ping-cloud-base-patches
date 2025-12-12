@@ -14,3 +14,4 @@ configMapGenerator:
 patchesStrategicMerge:
   - fluentbit-config-patch.yaml
   - fluentbit-patch.yaml
+  - fluentbit-metrics-patch.yaml
