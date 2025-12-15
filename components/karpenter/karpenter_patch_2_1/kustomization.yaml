@@ -1,0 +1,32 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+# v2.1 Karpenter EKS 1.33 patch to use AL2023 AMI family
+patches:
+  - target:
+      group: karpenter.k8s.aws
+      version: v1beta1
+      kind: EC2NodeClass
+      name: default
+    patch: |-
+      - op: replace
+        path: /spec/amiFamily
+        value: AL2023
+  - target:
+      group: karpenter.k8s.aws
+      version: v1beta1
+      kind: EC2NodeClass
+      name: pd-only
+    patch: |-
+      - op: replace
+        path: /spec/amiFamily
+        value: AL2023
+  - target:
+      group: karpenter.k8s.aws
+      version: v1beta1
+      kind: EC2NodeClass
+      name: pgo-only
+    patch: |-
+      - op: replace
+        path: /spec/amiFamily
+        value: AL2023
