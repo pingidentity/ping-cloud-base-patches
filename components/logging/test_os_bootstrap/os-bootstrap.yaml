@@ -1,0 +1,11 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: opensearch-bootstrap
+spec:
+  template:
+    spec:
+      containers:
+      - name: opensearch-bootstrap
+        image: 705370621539.dkr.ecr.us-west-2.amazonaws.com/pingcloud-monitoring/os-bootstrap:pdo-10878-os-index@sha256:9319a4c0e5c25374f00e9e9233b48fe575507d76d8f5c9f879e5530cd8cf2bb4
