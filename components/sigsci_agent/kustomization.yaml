@@ -19,9 +19,15 @@ patches:
       name: nginx-ingress-controller
       namespace: ingress-nginx-public
   - patch: |-
-      - op: replace
-        path: /spec/metrics/0/resource/target/averageUtilization
-        value: 40
+      - op: add
+        path: /spec/metrics  # Target the list itself, not index 0
+        value:
+          - type: Resource   # Provide the full list item
+            resource:
+              name: cpu
+              target:
+                type: Utilization
+                averageUtilization: 40
     target:
       kind: HorizontalPodAutoscaler
       name: nginx-ingress-controller
