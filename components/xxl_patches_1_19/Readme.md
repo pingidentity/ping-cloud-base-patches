@@ -11,10 +11,10 @@ So far the following has only been tested against P1AS v1.19.2.0
 
 ```yaml
 components:
-  - github.com/pingidentity/ping-cloud-base-patches//components/xxl_patches_1_19/pingfederate?ref=pdo-10262
-  - github.com/pingidentity/ping-cloud-base-patches//components/xxl_patches_1_19/pingaccess?ref=pdo-10262
-  - github.com/pingidentity/ping-cloud-base-patches//components/xxl_patches_1_19/pingaccess-was?ref=pdo-10262
-  - github.com/pingidentity/ping-cloud-base-patches//components/xxl_patches_1_19/nginx?ref=pdo-10262
-  - github.com/pingidentity/ping-cloud-base-patches//components/xxl_patches_1_19/logstash?ref=pdo-10262
-  - github.com/pingidentity/ping-cloud-base-patches//components/xxl_patches_1_19/fluent-bit?ref=pdo-10262
-  - github.com/pingidentity/ping-cloud-base-patches//components/xxl_patches_1_19/pingdirectory?ref=pdo-10262
+  - github.com/pingidentity/ping-cloud-base-patches//components/xxl_patches_1_19/pingfederate
+  - github.com/pingidentity/ping-cloud-base-patches//components/xxl_patches_1_19/pingaccess
+  - github.com/pingidentity/ping-cloud-base-patches//components/xxl_patches_1_19/pingaccess-was
+  - github.com/pingidentity/ping-cloud-base-patches//components/xxl_patches_1_19/nginx
+  - github.com/pingidentity/ping-cloud-base-patches//components/xxl_patches_1_19/logstash
+  - github.com/pingidentity/ping-cloud-base-patches//components/xxl_patches_1_19/fluent-bit
+  - github.com/pingidentity/ping-cloud-base-patches//components/xxl_patches_1_19/pingdirectory
