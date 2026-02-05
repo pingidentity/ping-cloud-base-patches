@@ -19,6 +19,9 @@ data:
         Parsers_File              parsers.conf
 
         # ---------------- Resilience & Buffering ----------------
+        
+        # Set limit to filesystem buffer which will be shared across by all the INPUTS and OUTPUTS
+        storage.total_limit_size  6000M
 
         # Base directory for filesystem-backed buffering.
         # Used when outputs are slow or unavailable.
