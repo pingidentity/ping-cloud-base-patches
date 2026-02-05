@@ -9,7 +9,7 @@ spec:
       annotations:
         newrelic.io/scrape: "true"
     spec:
-      # Must be > Grace (30s) to allow clean shutdown
+      # Must be greater than Fluent Bit Grace (30s)
       terminationGracePeriodSeconds: 60
 
       containers:
@@ -36,12 +36,14 @@ spec:
                 name: cluster-info
                 key: logs.region
 
-        # -----------------------------
-        # Health Checks
-        # -----------------------------
+        # -------------------------------------------------
+        # Health Probes 
+        # -------------------------------------------------
 
-        # Liveness: restart only if Fluent Bit process is dead
+        # Liveness: restart only if Fluent Bit process is gone
         livenessProbe:
+          httpGet:
+            $patch: delete
           exec:
             command:
               - /bin/sh
@@ -60,25 +62,25 @@ spec:
           periodSeconds: 10
           failureThreshold: 3
 
-        # -----------------------------
-        # Resource Safety
-        # -----------------------------
+        # -------------------------------------------------
+        # Resource bounds (aligned with resilience model)
+        # -------------------------------------------------
         resources:
           requests:
             cpu: 500m
-            memory: 768Mi
+            memory: 1Gi
           limits:
             cpu: "2"
-            memory: 1536Mi
+            memory: 2Gi
 
         volumeMounts:
-        # Remove old pipeline mounts
+        # Remove legacy pipeline mounts
         - name: fluent-bit-pipeline-s3
           $patch: delete
         - name: fluent-bit-pipeline-customer
           $patch: delete
 
-        # Active config mounts
+        # Active configuration
         - name: fluent-bit-config
           mountPath: /fluent-bit/etc/fluent-bit.conf
           subPath: fluent-bit.conf
@@ -89,11 +91,11 @@ spec:
           mountPath: /fluent-bit/etc/elk.conf
           subPath: elk.conf
 
-        # Filesystem buffering
+        # Filesystem-backed buffering
         - name: fluentbitstate
           mountPath: /fluent-bit/state
 
-        # Host log sources
+        # Host log mounts
         - name: varlog
           mountPath: /var/log
           readOnly: true
@@ -108,7 +110,7 @@ spec:
           readOnly: true
 
       volumes:
-      # Remove unused pipeline ConfigMaps
+      # Remove unused ConfigMaps
       - name: fluent-bit-pipeline-s3
         $patch: delete
       - name: fluent-bit-pipeline-customer
@@ -125,12 +127,12 @@ spec:
         configMap:
           name: fluent-bit-pipeline-elk
 
-      # Filesystem buffer (HostPath)
+      # HostPath for buffering
       - name: fluentbitstate
         hostPath:
           path: /fluent-bit/state
 
-      # Host log mounts
+      # Host log paths
       - name: varlog
         hostPath:
           path: /var/log
@@ -158,3 +160,4 @@ metadata:
   name: fluent-bit-pipeline-customer
   namespace: elastic-stack-logging
 $patch: delete
+
