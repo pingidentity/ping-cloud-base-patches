@@ -7,20 +7,78 @@ $patch: merge
 data:
   fluent-bit.conf: |-
     [SERVICE]
+        # Flush interval in seconds.
+        # Controls how often Fluent Bit tries to push buffered data to outputs.
+        # A low value reduces latency but increases scheduling activity.
         Flush                     1
+
+        # Run Fluent Bit in foreground mode (required for containers).
         Daemon                    off
+
+        # File containing parser definitions used by inputs.
         Parsers_File              parsers.conf
+
+        # ---------------- Resilience & Buffering ----------------
+
+        # Base directory for filesystem-backed buffering.
+        # Used when outputs are slow or unavailable.
         storage.path              /fluent-bit/state/flb-storage/
+
+        # Use OS-level buffering for disk writes.
+        # Prioritizes throughput and stability over fsync-level durability.
         storage.sync              normal
+
+        # Disable per-chunk checksums to reduce CPU overhead.
+        # Acceptable for log pipelines where minor corruption is tolerable.
         storage.checksum          off
-        storage.backlog.mem_limit 1500M
+
+        # Maximum amount of RAM (global) used for pending chunks
+        # before spilling aggressively to disk.
+        # Prevents unbounded memory growth during output outages.
+        storage.backlog.mem_limit 50M
+
+        # Maximum number of chunks that can be active ("up") at once.
+        # Acts as a global safety valve under extreme ingestion.
         storage.max_chunks_up     2000
+
+        # Expose storage-related metrics via the HTTP endpoint.
+        # Used for monitoring disk usage and chunk behavior.
         storage.metrics           on
+
+        # ---------------- Retry & Scheduler Behavior ----------------
+
+        # Base delay (in seconds) before retrying a failed output.
+        # Each retry increases exponentially from this value.
         scheduler.base            3
+
+        # Maximum delay (in seconds) between retries for a failed output.
+        # Caps retry frequency to avoid CPU spikes during long outages.
         scheduler.cap             180
+
+        # ---------------- Shutdown Handling ----------------
+
+        # Time (in seconds) Fluent Bit will spend attempting to flush data
+        # when it receives SIGTERM during pod shutdown.
+        # Requires Kubernetes terminationGracePeriodSeconds > this value.
+        Grace                     30
+
+        # ---------------- Health & Metrics Endpoints ----------------
+
+        # Enable the built-in HTTP server for metrics and health checks.
         HTTP_Server               On
+
+        # Listen on all interfaces inside the container.
         HTTP_Listen               0.0.0.0
+
+        # Port used for health checks and Prometheus-style metrics.
         HTTP_Port                 2020
+
+        # Enable internal health checks.
+        # Used by readiness probes to reflect pipeline health,
+        # not process liveness.
         Health_Check              On
 
+    # Include input, filter, and output pipeline definitions.
+    # Kept separate to allow independent patching and review.
     @INCLUDE elk.conf
+

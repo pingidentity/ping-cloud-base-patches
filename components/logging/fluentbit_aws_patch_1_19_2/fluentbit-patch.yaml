@@ -9,6 +9,9 @@ spec:
       annotations:
         newrelic.io/scrape: "true"
     spec:
+      # Must be > Grace (30s) to allow clean shutdown
+      terminationGracePeriodSeconds: 60
+
       containers:
       - name: fluent-bit
         image: public.ecr.aws/r2h3l6e4/pingcloud-clustertools/amazon/aws-for-fluent-bit:2.31.7
@@ -18,7 +21,7 @@ spec:
         args:
           - -c
           - |
-            export S3_BUCKET_NAME="${S3_BUCKET#s3://}"; \
+            export S3_BUCKET_NAME="${S3_BUCKET#s3://}";
             exec /entrypoint.sh -c /fluent-bit/etc/fluent-bit.conf
 
         env:
@@ -33,12 +36,49 @@ spec:
                 name: cluster-info
                 key: logs.region
 
+        # -----------------------------
+        # Health Checks
+        # -----------------------------
+
+        # Liveness: restart only if Fluent Bit process is dead
+        livenessProbe:
+          exec:
+            command:
+              - /bin/sh
+              - -c
+              - pgrep fluent-bit >/dev/null
+          initialDelaySeconds: 30
+          periodSeconds: 60
+          failureThreshold: 3
+
+        # Readiness: reflect pipeline health (outputs may be degraded)
+        readinessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 2020
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 3
+
+        # -----------------------------
+        # Resource Safety
+        # -----------------------------
+        resources:
+          requests:
+            cpu: 500m
+            memory: 768Mi
+          limits:
+            cpu: "2"
+            memory: 1536Mi
+
         volumeMounts:
+        # Remove old pipeline mounts
         - name: fluent-bit-pipeline-s3
           $patch: delete
         - name: fluent-bit-pipeline-customer
           $patch: delete
 
+        # Active config mounts
         - name: fluent-bit-config
           mountPath: /fluent-bit/etc/fluent-bit.conf
           subPath: fluent-bit.conf
@@ -48,8 +88,12 @@ spec:
         - name: fluent-bit-pipeline-elk
           mountPath: /fluent-bit/etc/elk.conf
           subPath: elk.conf
+
+        # Filesystem buffering
         - name: fluentbitstate
           mountPath: /fluent-bit/state
+
+        # Host log sources
         - name: varlog
           mountPath: /var/log
           readOnly: true
@@ -63,14 +107,14 @@ spec:
           mountPath: /var/log/dmesg
           readOnly: true
 
-
-
       volumes:
+      # Remove unused pipeline ConfigMaps
       - name: fluent-bit-pipeline-s3
         $patch: delete
       - name: fluent-bit-pipeline-customer
         $patch: delete
 
+      # Active ConfigMaps
       - name: fluent-bit-config
         configMap:
           name: fluent-bit-config
@@ -80,9 +124,13 @@ spec:
       - name: fluent-bit-pipeline-elk
         configMap:
           name: fluent-bit-pipeline-elk
+
+      # Filesystem buffer (HostPath)
       - name: fluentbitstate
         hostPath:
           path: /fluent-bit/state
+
+      # Host log mounts
       - name: varlog
         hostPath:
           path: /var/log
