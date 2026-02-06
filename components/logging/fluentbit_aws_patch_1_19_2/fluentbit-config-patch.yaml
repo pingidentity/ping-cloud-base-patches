@@ -8,83 +8,71 @@ data:
   fluent-bit.conf: |-
     [SERVICE]
         # Flush interval in seconds.
-        # Controls how often Fluent Bit tries to push buffered data to outputs.
-        # A low value reduces latency but increases scheduling activity.
+        # Lower value = lower latency, higher scheduler activity.
         Flush                     1
 
-        # Run in foreground (required in containers).
+        # Run in foreground mode (required for containers).
         Daemon                    off
 
-        # File containing parser definitions used by inputs.
+        # File containing parser definitions.
         Parsers_File              parsers.conf
 
-        # ---------------- Resilience & Buffering ----------------
-       
-        # Enable filesystem-backed storage engine.
-        # Without this, ALL storage.* limits are ignored.
+        # ================= Resilience & Buffering =================
+
+        # REQUIRED: Enable filesystem-backed storage engine.
+        # Without this, all storage.* limits are ignored.
         storage.type              filesystem
 
         # Global filesystem buffer limit shared across ALL inputs & outputs.
+        # When reached, all inputs are paused (global backpressure).
         storage.total_limit_size  500M
 
-        # Base directory for filesystem-backed buffering.
-        # Used when outputs are slow or unavailable.
-        storage.path              /fluent-bit/state/flb-storage/
+        # Base directory for filesystem buffering.
+        # Must match the directory you monitor with `du`.
+        storage.path              /fluent-bit/state/flb-storage
 
-        # Use OS-level buffering for disk writes.
-        # Prioritizes throughput and stability over fsync-level durability.
+        # Use OS-level buffering for disk writes (good throughput).
         storage.sync              normal
 
-        # Disable per-chunk checksum (reduces CPU overhead).
+        # Disable per-chunk checksum to reduce CPU overhead.
         storage.checksum          off
 
-        # Maximum amount of RAM (global) used for pending chunks
-        # before spilling aggressively to disk.
-        # Prevents unbounded memory growth during output outages.
+        # Maximum amount of RAM used for pending chunks
+        # before aggressively spilling to disk.
         storage.backlog.mem_limit 50M
 
-        # Maximum number of chunks that can be active ("up") at once.
+        # Maximum number of chunks allowed to be "up" (active).
         # Acts as a global safety valve under extreme ingestion.
         storage.max_chunks_up     2000
 
         # Expose storage-related metrics via the HTTP endpoint.
-        # Used for monitoring disk usage and chunk behavior.
         storage.metrics           on
 
-        # ---------------- Retry & Scheduler Behavior ----------------
+        # ================= Retry & Scheduler =================
 
-        # Base delay (in seconds) before retrying a failed output.
-        # Each retry increases exponentially from this value.
+        # Base retry delay (seconds); retries grow exponentially.
         scheduler.base            3
 
-        # Maximum delay (in seconds) between retries for a failed output.
-        # Caps retry frequency to avoid CPU spikes during long outages.
+        # Maximum retry delay cap (seconds).
         scheduler.cap             180
 
-        # ---------------- Shutdown Handling ----------------
+        # ================= Shutdown Handling =================
 
-        # Time (in seconds) Fluent Bit will spend attempting to flush data
-        # when it receives SIGTERM during pod shutdown.
-        # Requires Kubernetes terminationGracePeriodSeconds > this value.
+        # Time allowed to flush data on SIGTERM.
+        # Ensure k8s terminationGracePeriodSeconds > this value.
         Grace                     30
 
-        # ---------------- Health & Metrics Endpoints ----------------
+        # ================= Health & Metrics =================
 
-        # Enable the built-in HTTP server for metrics and health checks.
+        # Enable HTTP server for metrics and health checks.
         HTTP_Server               On
-
-        # Listen on all interfaces inside the container.
         HTTP_Listen               0.0.0.0
-
-        # Port used for health checks and Prometheus-style metrics.
         HTTP_Port                 2020
 
-        # Enable internal health checks.
-        # Used by readiness probes to reflect pipeline health,
-        # not process liveness.
+        # Enables readiness based on pipeline health.
         Health_Check              On
 
-    # Include input, filter, and output pipeline definitions.
-    # Kept separate to allow independent patching and review.
+    # ================= Pipelines =================
+    # Inputs, filters, and outputs are defined separately.
     @INCLUDE elk.conf
 
