@@ -19,14 +19,6 @@ data:
 
         # ================= Resilience & Buffering =================
 
-        # REQUIRED: Enable filesystem-backed storage engine.
-        # Without this, all storage.* limits are ignored.
-        storage.type              filesystem
-
-        # Global filesystem buffer limit shared across ALL inputs & outputs.
-        # When reached, all inputs are paused (global backpressure).
-        storage.total_limit_size  500M
-
         # Base directory for filesystem buffering.
         # Must match the directory you monitor with `du`.
         storage.path              /fluent-bit/state/flb-storage
