@@ -5,19 +5,11 @@ metadata:
   namespace: elastic-stack-logging
 spec:
   template:
-    metadata:
-      annotations:
-        # Preserving your New Relic scraping configuration
-        newrelic.io/scrape: "true"
     spec:
-      # Recommended for 3.x/4.x to allow time for the new Task system to flush
       terminationGracePeriodSeconds: 60
-
       containers:
       - name: fluent-bit
-        # Updated to the official stable AWS Observability image for v3.2.1
         image: public.ecr.aws/aws-observability/aws-for-fluent-bit:3.2.1
-        
         command:
           - /bin/sh
         args:
@@ -25,25 +17,13 @@ spec:
           - |
             export S3_BUCKET_NAME="${S3_BUCKET#s3://}";
             exec /entrypoint.sh -c /fluent-bit/etc/fluent-bit.conf
-
-        env:
-          - name: S3_BUCKET
-            valueFrom:
-              configMapKeyRef:
-                name: s3-raw-logs-bucket
-                key: bucketName
-          - name: AWS_REGION
-            valueFrom:
-              configMapKeyRef:
-                name: cluster-info
-                key: logs.region
-
+        
         # -------------------------------------------------
-        # Modernized Probes for v3.x/v4.x Architecture
+        # Fixed Probes: Using 'exec' while clearing 'httpGet'
         # -------------------------------------------------
-
-        # Liveness: Ensures the process is active
         livenessProbe:
+          # This explicitly clears any existing httpGet handler
+          httpGet: null 
           exec:
             command:
               - /bin/sh
@@ -52,14 +32,17 @@ spec:
           initialDelaySeconds: 30
           periodSeconds: 10
 
-        # Readiness: Checks if the new internal HTTP server is responding
         readinessProbe:
+          # Switching to the modern v3.x/v4.x health API
           httpGet:
             path: /api/v1/health
             port: 2020
           initialDelaySeconds: 10
           periodSeconds: 10
 
+        # -------------------------------------------------
+        # Cleaned VolumeMounts (Removed S3/Customer mounts)
+        # -------------------------------------------------
         volumeMounts:
         - name: fluent-bit-config
           mountPath: /fluent-bit/etc/
@@ -82,30 +65,25 @@ spec:
           readOnly: true
 
       volumes:
-      # Cleanup of legacy pipelines as per your original patch
+      # These deletes remove the volumes from the Pod spec
       - name: fluent-bit-pipeline-s3
         $patch: delete
       - name: fluent-bit-pipeline-customer
         $patch: delete
-
-      # Active Volume Definitions
+      
+      # Ensure the state directory is correctly mapped for the 4GB buffer
+      - name: fluentbitstate
+        hostPath:
+          path: /fluent-bit/state
+          type: DirectoryOrCreate
+      
+      # Standard host paths
       - name: fluent-bit-config
         configMap:
           name: fluent-bit-config
       - name: fluent-bit-parsers
         configMap:
           name: fluent-bit-parsers
-      - name: fluent-bit-pipeline-elk
-        configMap:
-          name: fluent-bit-pipeline-elk
-
-      # Critical for persistent buffering: Maps the state DB and Disk Buffer
-      - name: fluentbitstate
-        hostPath:
-          path: /fluent-bit/state
-          type: DirectoryOrCreate
-
-      # Host log paths
       - name: varlog
         hostPath:
           path: /var/log
