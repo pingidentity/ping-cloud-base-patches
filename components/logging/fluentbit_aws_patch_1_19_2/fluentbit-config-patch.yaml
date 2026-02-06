@@ -8,6 +8,7 @@ data:
   fluent-bit.conf: |-
     [SERVICE]
         # Flush interval in seconds.
+        # Lower value = lower latency, higher scheduler activity.
         Flush                     1
 
         # Run in foreground mode (required for containers).
@@ -19,46 +20,51 @@ data:
         # ================= Resilience & Buffering =================
 
         # Base directory for filesystem buffering.
+        # Must match the directory you monitor with `du`.
         storage.path              /fluent-bit/state/flb-storage
 
-        # Use OS-level buffering for disk writes.
+        # Use OS-level buffering for disk writes (good throughput).
         storage.sync              normal
 
-        # Disable per-chunk checksum to reduce CPU overhead in v4.x.
+        # Disable per-chunk checksum to reduce CPU overhead.
         storage.checksum          off
 
-        # Maximum amount of RAM used for pending chunks before spilling to disk.
-        # This acts as a global safety valve.
+        # Maximum amount of RAM used for pending chunks
+        # before aggressively spilling to disk.
         storage.backlog.mem_limit 50M
 
-        # Maximum number of chunks allowed to be "up" (active) in memory.
-        # This ensures the pod doesn't exceed its memory limits during bursts.
+        # Maximum number of chunks allowed to be "up" (active).
+        # Acts as a global safety valve under extreme ingestion.
         storage.max_chunks_up     2000
 
-        # Enable storage-related metrics for monitoring and alerting.
+        # Expose storage-related metrics via the HTTP endpoint.
         storage.metrics           on
 
         # ================= Retry & Scheduler =================
 
-        # Modern Scheduler settings: retries grow exponentially.
+        # Base retry delay (seconds); retries grow exponentially.
         scheduler.base            3
+
+        # Maximum retry delay cap (seconds).
         scheduler.cap             180
 
         # ================= Shutdown Handling =================
 
         # Time allowed to flush data on SIGTERM.
+        # Ensure k8s terminationGracePeriodSeconds > this value.
         Grace                     30
 
         # ================= Health & Metrics =================
 
-        # Enable the HTTP server for the new /api/v1/health endpoint.
+        # Enable HTTP server for metrics and health checks.
         HTTP_Server               On
         HTTP_Listen               0.0.0.0
         HTTP_Port                 2020
 
-        # Enables readiness checks based on actual pipeline state (v3.x+ feature).
+        # Enables readiness based on pipeline health.
         Health_Check              On
 
     # ================= Pipelines =================
-    # Include the separate pipeline definition file.
+    # Inputs, filters, and outputs are defined separately.
     @INCLUDE elk.conf
+

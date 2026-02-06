@@ -4,13 +4,8 @@ metadata:
   name: fluent-bit
   namespace: elastic-stack-logging
 spec:
-  selector:
-    matchLabels:
-      app: fluent-bit
   template:
     metadata:
-      labels:
-        app: fluent-bit
       annotations:
         newrelic.io/scrape: "true"
     spec:
@@ -19,14 +14,36 @@ spec:
 
       containers:
       - name: fluent-bit
-        image: public.ecr.aws/aws-observability/aws-for-fluent-bit:3.2.1
+        image: public.ecr.aws/r2h3l6e4/pingcloud-clustertools/amazon/aws-for-fluent-bit:2.31.7
+
+        command:
+          - /bin/sh
+        args:
+          - -c
+          - |
+            export S3_BUCKET_NAME="${S3_BUCKET#s3://}";
+            exec /entrypoint.sh -c /fluent-bit/etc/fluent-bit.conf
+
+        env:
+          - name: S3_BUCKET
+            valueFrom:
+              configMapKeyRef:
+                name: s3-raw-logs-bucket
+                key: bucketName
+          - name: AWS_REGION
+            valueFrom:
+              configMapKeyRef:
+                name: cluster-info
+                key: logs.region
 
         # -------------------------------------------------
-        # Health Probes (FIXED)
+        # Health Probes 
         # -------------------------------------------------
 
-        # Liveness: restart ONLY if process is gone
+        # Liveness: restart only if Fluent Bit process is gone
         livenessProbe:
+          httpGet:
+            $patch: delete
           exec:
             command:
               - /bin/sh
@@ -36,7 +53,7 @@ spec:
           periodSeconds: 60
           failureThreshold: 3
 
-        # Readiness: reflects pipeline / output health
+        # Readiness: reflect pipeline health (outputs may be degraded)
         readinessProbe:
           httpGet:
             path: /api/v1/health
@@ -46,7 +63,7 @@ spec:
           failureThreshold: 3
 
         # -------------------------------------------------
-        # Resources (UNCHANGED)
+        # Resource bounds (aligned with resilience model)
         # -------------------------------------------------
         resources:
           requests:
@@ -56,18 +73,20 @@ spec:
             cpu: "2"
             memory: 2Gi
 
-        # -------------------------------------------------
-        # Volume Mounts
-        # -------------------------------------------------
         volumeMounts:
+        # Remove legacy pipeline mounts
+        - name: fluent-bit-pipeline-s3
+          $patch: delete
+        - name: fluent-bit-pipeline-customer
+          $patch: delete
+
+        # Active configuration
         - name: fluent-bit-config
           mountPath: /fluent-bit/etc/fluent-bit.conf
           subPath: fluent-bit.conf
-
         - name: fluent-bit-parsers
           mountPath: /fluent-bit/etc/parsers.conf
           subPath: parsers.conf
-
         - name: fluent-bit-pipeline-elk
           mountPath: /fluent-bit/etc/elk.conf
           subPath: elk.conf
@@ -80,55 +99,65 @@ spec:
         - name: varlog
           mountPath: /var/log
           readOnly: true
-
         - name: varlibdockercontainers
           mountPath: /var/lib/docker/containers
           readOnly: true
-
         - name: runlogjournal
           mountPath: /run/log/journal
           readOnly: true
-
         - name: dmesg
           mountPath: /var/log/dmesg
           readOnly: true
 
-      # -------------------------------------------------
-      # Volumes
-      # -------------------------------------------------
       volumes:
+      # Remove unused ConfigMaps
+      - name: fluent-bit-pipeline-s3
+        $patch: delete
+      - name: fluent-bit-pipeline-customer
+        $patch: delete
+
+      # Active ConfigMaps
       - name: fluent-bit-config
         configMap:
           name: fluent-bit-config
-
       - name: fluent-bit-parsers
         configMap:
           name: fluent-bit-parsers
-
       - name: fluent-bit-pipeline-elk
         configMap:
           name: fluent-bit-pipeline-elk
 
-      # HostPath for buffering (IMPORTANT)
+      # HostPath for buffering
       - name: fluentbitstate
         hostPath:
           path: /fluent-bit/state
-          type: DirectoryOrCreate
 
       # Host log paths
       - name: varlog
         hostPath:
           path: /var/log
-
       - name: varlibdockercontainers
         hostPath:
           path: /var/lib/docker/containers
-
       - name: runlogjournal
         hostPath:
           path: /run/log/journal
-
       - name: dmesg
         hostPath:
           path: /var/log/dmesg
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluent-bit-pipeline-s3
+  namespace: elastic-stack-logging
+$patch: delete
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluent-bit-pipeline-customer
+  namespace: elastic-stack-logging
+$patch: delete
 
