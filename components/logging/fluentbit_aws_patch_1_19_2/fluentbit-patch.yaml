@@ -5,54 +5,145 @@ metadata:
   namespace: elastic-stack-logging
 spec:
   template:
+    metadata:
+      annotations:
+        newrelic.io/scrape: "true"
     spec:
+      # Must be greater than Fluent Bit Grace (30s)
       terminationGracePeriodSeconds: 60
+
       containers:
       - name: fluent-bit
+
+        # -------------------------------------------------
+        # UPGRADE: Fluent Bit modern core
+        # -------------------------------------------------
         image: public.ecr.aws/aws-observability/aws-for-fluent-bit:3.2.1
-        
+
         # -------------------------------------------------
-        # 1. FIX: Explicitly remove the old httpGet handler
+        # IMPORTANT: Use native entrypoint (no shell wrap)
         # -------------------------------------------------
+        # command / args REMOVED
+        # aws-for-fluent-bit 3.x handles startup & signals correctly
+
+        env:
+          - name: S3_BUCKET
+            valueFrom:
+              configMapKeyRef:
+                name: s3-raw-logs-bucket
+                key: bucketName
+          - name: AWS_REGION
+            valueFrom:
+              configMapKeyRef:
+                name: cluster-info
+                key: logs.region
+
+        # -------------------------------------------------
+        # Health Probes (correct for 3.2.1)
+        # -------------------------------------------------
+
+        # Liveness: restart only if process is gone
         livenessProbe:
-          httpGet: null  # This removes the existing httpGet handler
           exec:
             command:
               - /bin/sh
               - -c
               - pgrep fluent-bit >/dev/null
           initialDelaySeconds: 30
-          periodSeconds: 10
+          periodSeconds: 60
+          failureThreshold: 3
 
+        # Readiness: reflect pipeline / output health
         readinessProbe:
-          # This replaces the entire readiness probe with the v3.2.1 API check
           httpGet:
             path: /api/v1/health
             port: 2020
           initialDelaySeconds: 10
           periodSeconds: 10
+          failureThreshold: 3
 
         # -------------------------------------------------
-        # 2. FIX: Explicitly delete the orphaned mounts
+        # Resources (UNCHANGED)
         # -------------------------------------------------
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: "2"
+            memory: 2Gi
+
         volumeMounts:
+        # Remove legacy pipeline mounts
         - name: fluent-bit-pipeline-s3
           $patch: delete
         - name: fluent-bit-pipeline-customer
           $patch: delete
-        # Ensure the state directory is correctly mounted
+
+        # Active configuration
+        - name: fluent-bit-config
+          mountPath: /fluent-bit/etc/fluent-bit.conf
+          subPath: fluent-bit.conf
+        - name: fluent-bit-parsers
+          mountPath: /fluent-bit/etc/parsers.conf
+          subPath: parsers.conf
+        - name: fluent-bit-pipeline-elk
+          mountPath: /fluent-bit/etc/elk.conf
+          subPath: elk.conf
+
+        # Filesystem-backed buffering
         - name: fluentbitstate
           mountPath: /fluent-bit/state
 
+        # Host log mounts
+        - name: varlog
+          mountPath: /var/log
+          readOnly: true
+        - name: varlibdockercontainers
+          mountPath: /var/lib/docker/containers
+          readOnly: true
+        - name: runlogjournal
+          mountPath: /run/log/journal
+          readOnly: true
+        - name: dmesg
+          mountPath: /var/log/dmesg
+          readOnly: true
+
       volumes:
-      # These delete the actual storage definitions
+      # Remove unused ConfigMaps
       - name: fluent-bit-pipeline-s3
         $patch: delete
       - name: fluent-bit-pipeline-customer
         $patch: delete
-      
-      # Correctly define the hostPath for the 4GB buffer
+
+      # Active ConfigMaps
+      - name: fluent-bit-config
+        configMap:
+          name: fluent-bit-config
+      - name: fluent-bit-parsers
+        configMap:
+          name: fluent-bit-parsers
+      - name: fluent-bit-pipeline-elk
+        configMap:
+          name: fluent-bit-pipeline-elk
+
+      # HostPath for buffering (recommended explicit type)
       - name: fluentbitstate
         hostPath:
           path: /fluent-bit/state
           type: DirectoryOrCreate
+
+      # Host log paths
+      - name: varlog
+        hostPath:
+          path: /var/log
+      - name: varlibdockercontainers
+        hostPath:
+          path: /var/lib/docker/containers
+      - name: runlogjournal
+        hostPath:
+          path: /run/log/journal
+      - name: dmesg
+        hostPath:
+          path: /var/log/dmesg
+
