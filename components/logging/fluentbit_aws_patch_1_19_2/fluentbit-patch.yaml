@@ -10,20 +10,12 @@ spec:
       containers:
       - name: fluent-bit
         image: public.ecr.aws/aws-observability/aws-for-fluent-bit:3.2.1
-        command:
-          - /bin/sh
-        args:
-          - -c
-          - |
-            export S3_BUCKET_NAME="${S3_BUCKET#s3://}";
-            exec /entrypoint.sh -c /fluent-bit/etc/fluent-bit.conf
         
         # -------------------------------------------------
-        # Fixed Probes: Using 'exec' while clearing 'httpGet'
+        # 1. FIX: Explicitly remove the old httpGet handler
         # -------------------------------------------------
         livenessProbe:
-          # This explicitly clears any existing httpGet handler
-          httpGet: null 
+          httpGet: null  # This removes the existing httpGet handler
           exec:
             command:
               - /bin/sh
@@ -33,7 +25,7 @@ spec:
           periodSeconds: 10
 
         readinessProbe:
-          # Switching to the modern v3.x/v4.x health API
+          # This replaces the entire readiness probe with the v3.2.1 API check
           httpGet:
             path: /api/v1/health
             port: 2020
@@ -41,58 +33,26 @@ spec:
           periodSeconds: 10
 
         # -------------------------------------------------
-        # Cleaned VolumeMounts (Removed S3/Customer mounts)
+        # 2. FIX: Explicitly delete the orphaned mounts
         # -------------------------------------------------
         volumeMounts:
-        - name: fluent-bit-config
-          mountPath: /fluent-bit/etc/
-        - name: fluent-bit-parsers
-          mountPath: /fluent-bit/etc/parsers.conf
-          subPath: parsers.conf
+        - name: fluent-bit-pipeline-s3
+          $patch: delete
+        - name: fluent-bit-pipeline-customer
+          $patch: delete
+        # Ensure the state directory is correctly mounted
         - name: fluentbitstate
           mountPath: /fluent-bit/state
-        - name: varlog
-          mountPath: /var/log
-          readOnly: true
-        - name: varlibdockercontainers
-          mountPath: /var/lib/docker/containers
-          readOnly: true
-        - name: runlogjournal
-          mountPath: /run/log/journal
-          readOnly: true
-        - name: dmesg
-          mountPath: /var/log/dmesg
-          readOnly: true
 
       volumes:
-      # These deletes remove the volumes from the Pod spec
+      # These delete the actual storage definitions
       - name: fluent-bit-pipeline-s3
         $patch: delete
       - name: fluent-bit-pipeline-customer
         $patch: delete
       
-      # Ensure the state directory is correctly mapped for the 4GB buffer
+      # Correctly define the hostPath for the 4GB buffer
       - name: fluentbitstate
         hostPath:
           path: /fluent-bit/state
           type: DirectoryOrCreate
-      
-      # Standard host paths
-      - name: fluent-bit-config
-        configMap:
-          name: fluent-bit-config
-      - name: fluent-bit-parsers
-        configMap:
-          name: fluent-bit-parsers
-      - name: varlog
-        hostPath:
-          path: /var/log
-      - name: varlibdockercontainers
-        hostPath:
-          path: /var/lib/docker/containers
-      - name: runlogjournal
-        hostPath:
-          path: /run/log/journal
-      - name: dmesg
-        hostPath:
-          path: /var/log/dmesg
