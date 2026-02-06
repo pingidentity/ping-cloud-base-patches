@@ -12,16 +12,20 @@ data:
         # A low value reduces latency but increases scheduling activity.
         Flush                     1
 
-        # Run Fluent Bit in foreground mode (required for containers).
+        # Run in foreground (required in containers).
         Daemon                    off
 
         # File containing parser definitions used by inputs.
         Parsers_File              parsers.conf
 
         # ---------------- Resilience & Buffering ----------------
-        
-        # Set limit to filesystem buffer which will be shared across by all the INPUTS and OUTPUTS
-        storage.total_limit_size  6000M
+       
+        # Enable filesystem-backed storage engine.
+        # Without this, ALL storage.* limits are ignored.
+        storage.type              filesystem
+
+        # Global filesystem buffer limit shared across ALL inputs & outputs.
+        storage.total_limit_size  500M
 
         # Base directory for filesystem-backed buffering.
         # Used when outputs are slow or unavailable.
@@ -31,8 +35,7 @@ data:
         # Prioritizes throughput and stability over fsync-level durability.
         storage.sync              normal
 
-        # Disable per-chunk checksums to reduce CPU overhead.
-        # Acceptable for log pipelines where minor corruption is tolerable.
+        # Disable per-chunk checksum (reduces CPU overhead).
         storage.checksum          off
 
         # Maximum amount of RAM (global) used for pending chunks
