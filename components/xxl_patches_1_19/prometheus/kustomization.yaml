@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: prometheus
+        namespace: prometheus
+      spec:
+        template:
+          spec:
+            containers:
+            - name: prometheus
+              resources:
+                requests:
+                  memory: "4000Mi"
+                  cpu: "100m"
+                limits:
+                  memory: "6000Mi"
+                  cpu: "1"
