@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pingaccess-was-cert-validation
+  namespace: ping-cloud
+spec:
+  schedule: "*/10 * * * *"        # Run every time min.
+  concurrencyPolicy: Forbid       # If still running, skip this run. We don't want multiple pods running.
+  startingDeadlineSeconds: 300
+  suspend: false
+  successfulJobsHistoryLimit: 0
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 0             # Don't retry failed jobs
+      template:
+        spec:
+          serviceAccountName: pingaccess-cert-maintainer
+          restartPolicy: Never
+          containers:
+            - name: runner
+              image: public.ecr.aws/r2h3l6e4/pingcloud-apps/pingaccess-was:v2.1.0
+              command: ["/bin/sh", "-c"]
+              args:
+                - /scripts/run.sh
+              env:
+                - name: STS
+                  value: pingaccess-was
+                - name: NAMESPACE
+                  value: ping-cloud
+                - name: KUBECTL_VERSION
+                  value: v1.30.4
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+          volumes:
+            - name: scripts
+              configMap:
+                name: verify-certificate
+                defaultMode: 0755
