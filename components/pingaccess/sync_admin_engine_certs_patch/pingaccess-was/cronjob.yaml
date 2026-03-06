@@ -30,6 +30,13 @@ spec:
                   value: ping-cloud
                 - name: KUBECTL_VERSION
                   value: v1.30.4
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: 100m
+                  memory: 256Mi
               volumeMounts:
                 - name: scripts
                   mountPath: /scripts
