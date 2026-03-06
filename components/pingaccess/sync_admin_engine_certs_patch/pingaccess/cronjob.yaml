@@ -36,5 +36,5 @@ spec:
           volumes:
             - name: scripts
               configMap:
-                name: verify-certificate
+                name: pingaccess-verify-certificate
                 defaultMode: 0755

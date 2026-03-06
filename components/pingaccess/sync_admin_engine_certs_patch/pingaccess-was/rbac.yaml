@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pingaccess-was-cert-maintainer
+  namespace: ping-cloud
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pingaccess-was-cert-maintainer
+  namespace: ping-cloud
+rules:
+  # Read pods + delete pods
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch", "delete"]
+
+  # Allow kubectl exec
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create"]
+
+  # Allow reading pod logs
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]
+
+  # Allow reading StatefulSets
+  - apiGroups: ["apps"]
+    resources: ["statefulsets"]
+    verbs: ["get", "list", "watch"]
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pingaccess-was-cert-maintainer
+  namespace: ping-cloud
+subjects:
+  - kind: ServiceAccount
+    name: pingaccess-was-cert-maintainer
+    namespace: ping-cloud
+roleRef:
+  kind: Role
+  name: pingaccess-was-cert-maintainer
+  apiGroup: rbac.authorization.k8s.io

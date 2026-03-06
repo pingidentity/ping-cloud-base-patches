@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: verify-certificate
+  name: pingaccess-verify-certificate
   namespace: ping-cloud
 data:
   run.sh: |

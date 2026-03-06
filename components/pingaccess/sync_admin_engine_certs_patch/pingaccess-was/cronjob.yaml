@@ -15,7 +15,7 @@ spec:
       backoffLimit: 0             # Don't retry failed jobs
       template:
         spec:
-          serviceAccountName: pingaccess-cert-maintainer
+          serviceAccountName: pingaccess-was-cert-maintainer
           restartPolicy: Never
           containers:
             - name: runner
@@ -36,5 +36,5 @@ spec:
           volumes:
             - name: scripts
               configMap:
-                name: verify-certificate
+                name: pingaccess-was-verify-certificate
                 defaultMode: 0755
