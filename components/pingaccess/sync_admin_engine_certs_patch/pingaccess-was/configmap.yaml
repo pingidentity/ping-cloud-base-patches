@@ -62,8 +62,8 @@ data:
       ######################################################################################################################################
       
       ################# 3) Compare their sha's which will detect if the engine need to be restarted to pick up new certificate  ############      
-      printf "%-25s Engine Certificate Sha: %s\n" "${pod}" "${final_pa_admin_certificate_within_engine_sha}"
-      printf "%-25s Admin Certificate Sha:  %s\n" "${STS}" "${final_pa_admin_certificate_sha}"
+      printf "%-30s Engine Certificate Sha: %s\n" "${pod}" "${final_pa_admin_certificate_within_engine_sha}"
+      printf "%-30s Admin Certificate Sha:  %s\n" "${STS}-admin-0" "${final_pa_admin_certificate_sha}"
       
       if [ "${final_pa_admin_certificate_within_engine_sha}" != "${final_pa_admin_certificate_sha}" ]; then
         return 1
@@ -73,7 +73,7 @@ data:
       return 0
     }
     
-    is_admin_pod_healthy() {    
+    is_admin_pod_healthy() {
       local per_pod_timeout=600 # 10min
       local interval=5
       local end=$(( $(date +%s) + per_pod_timeout ))
@@ -101,7 +101,7 @@ data:
       return 1
     }
     
-    is_all_engine_pods_healthy() {    
+    is_all_engine_pods_healthy() {
       local count=0
       local per_pod_timeout=10m
       
@@ -152,25 +152,34 @@ data:
     while [ "$count" -lt "$REPLICAS" ]; do
       pod="${STS}-${count}"
       
+      echo "===== Checking Admin Health ====="
       echo -e "Before evaluating $STS-admin pod must be accessible. Checking..."
       if ! is_admin_pod_healthy; then
         echo "ERROR: $STS-admin not healthy. CronJob failing and wont do anything until the admin is running." >&2
+        echo -e "==================================================\n"
         exit 1
       fi
-      echo -e "$STS-admin pod is healthy.\n"
+      echo -e "$STS-admin pod is healthy."
+      echo -e "==================================================\n"
       
+      echo "===== Checking Engine(s) Health ====="
       echo -e "Next up, evaluating all engines in same cluster/region. All engine pods must be healthy. Checking...\n"
       if ! is_all_engine_pods_healthy; then
         echo "ERROR: $STS not healthy. CronJob failing and wont do anything until all pods are running and ready." >&2
+        echo -e "==================================================\n"
         exit 1
       fi
-      echo -e "All engine pods are healthy. Automation will evaluate $pod Engine certificate.\n"
+      echo -e "All engine pods are healthy. Automation will evaluate $pod Engine certificate."
+      echo -e "==================================================\n"
 
       echo "===== Validating $pod certificate ====="
       if validate_certificate "$pod"; then
         echo "$STS Admin certificate is the same as $pod Engine truststore certificate. Nothing needs to be done."
         echo -e "==================================================\n"
       else
+        echo -e "WARNING==================================================WARNING\n"
+        
+        echo "===== Retry validating $pod certificate ====="
         echo "The $STS Admin certificate is not the same as the $pod Engine truststore certificate."
         echo "Engine needs to be restarted so that automation can get the latest certificate from the $STS Admin."
         /tmp/kubectl delete pod "$pod" -n "$NAMESPACE" > /dev/null
@@ -185,7 +194,7 @@ data:
       
         echo "===== Checking once more if restart fixed the problem. Validating $pod certificate ====="
         if ! validate_certificate "$pod"; then
-          echo "ERROR: $pod engine certificate failed validation." >&2
+          echo "ERROR===== $pod engine certificate failed validation. =====ERROR" >&2
           echo -e "==============================================================================================\n"
           exit 1
         else
