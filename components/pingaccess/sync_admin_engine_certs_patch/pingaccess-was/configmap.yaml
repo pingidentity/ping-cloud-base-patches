@@ -37,13 +37,10 @@ data:
       echo "${pa_admin_certificate_within_engine_x5c}" >> "${pa_admin_certificate_within_engine}"
       echo "${end_certificate_footer}" >> "${pa_admin_certificate_within_engine}"
       
-      pa_admin_certificate_within_engine_sha=$(keytool -printcert -file "${pa_admin_certificate_within_engine}" | grep 'SHA256: ')
+      pa_admin_certificate_within_engine_sha=$(keytool -printcert -file "${pa_admin_certificate_within_engine}" | grep 'SHA256:')
       
-      # Remove newlines
-      pa_admin_certificate_within_engine_sha=$(echo "${pa_admin_certificate_within_engine_sha}" | tr -d '\n')
-      
-      # Calculate SHA of fingerprint
-      final_pa_admin_certificate_within_engine_sha=$(echo "${pa_admin_certificate_within_engine_sha}" | sha256sum | awk '{print $1}')
+      # Retrieve SHA256 only fingerprint
+      final_pa_admin_certificate_within_engine_sha=$(echo "${pa_admin_certificate_within_engine_sha}" | cut -d' ' -f3)
       
       ######################################################################################################################################
       
@@ -57,13 +54,10 @@ data:
         pa_host="pingaccess-was-admin-0.${pa_was_cluster_public_hostname}"
       fi
       
-      pa_admin_certificate_sha=$(timeout 10s keytool -printcert -sslserver "${pa_host}:9090" | grep 'SHA256: ')
+      pa_admin_certificate_sha=$(timeout 10s keytool -printcert -sslserver "${pa_host}:9090" | grep 'SHA256:')
       
-      # Remove newlines
-      pa_admin_certificate_sha=$(echo "${pa_admin_certificate_sha}" | tr -d '\n')
-      
-      # Calculate SHA of fingerprint
-      final_pa_admin_certificate_sha=$(echo "${pa_admin_certificate_sha}" | sha256sum | awk '{print $1}')
+      # Retrieve SHA256 only fingerprint
+      final_pa_admin_certificate_sha=$(echo "${pa_admin_certificate_sha}" | cut -d' ' -f3)
       
       ######################################################################################################################################
       
