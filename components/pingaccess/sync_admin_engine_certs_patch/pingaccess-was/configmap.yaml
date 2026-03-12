@@ -85,16 +85,17 @@ data:
       local end=$(( $(date +%s) + per_pod_timeout ))
       local pod="${STS}-admin-0"
       
-      if [ "$STS" = "pingaccess" ]; then
-        pa_cluster_public_hostname=$(/tmp/kubectl -n "$NAMESPACE" exec "$pod" -c "$STS-admin" -- sh -c 'echo "$PA_CLUSTER_PUBLIC_HOSTNAME"')
-        pa_host="pingaccess-admin-0.${pa_cluster_public_hostname}"
-      else
-        pa_was_cluster_public_hostname=$(/tmp/kubectl -n "$NAMESPACE" exec "$pod" -c "$STS-admin" -- sh -c 'echo "$PA_WAS_CLUSTER_PUBLIC_HOSTNAME"')
-        pa_host="pingaccess-was-admin-0.${pa_was_cluster_public_hostname}"
-      fi
-      
       # Validate that admin is accessible
       while [ "$(date +%s)" -lt "$end" ]; do
+      
+        if [ "$STS" = "pingaccess" ]; then
+          pa_cluster_public_hostname=$(/tmp/kubectl -n "$NAMESPACE" exec "$pod" -c "$STS-admin" -- sh -c 'echo "$PA_CLUSTER_PUBLIC_HOSTNAME"')
+          pa_host="pingaccess-admin-0.${pa_cluster_public_hostname}"
+        else
+          pa_was_cluster_public_hostname=$(/tmp/kubectl -n "$NAMESPACE" exec "$pod" -c "$STS-admin" -- sh -c 'echo "$PA_WAS_CLUSTER_PUBLIC_HOSTNAME"')
+          pa_host="pingaccess-was-admin-0.${pa_was_cluster_public_hostname}"
+        fi
+      
         if nc -z -v -w 2 "$pa_host" "9090"; then
           return 0
         fi
