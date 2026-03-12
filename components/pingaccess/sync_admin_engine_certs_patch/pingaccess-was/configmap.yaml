@@ -61,9 +61,9 @@ data:
       
       ######################################################################################################################################
       
-      ################# 3) Compare their sha's which will detect if the engine need to be restarted to pick up new certificate  ############
-      echo "$pod Engine Certificate Sha: ${final_pa_admin_certificate_within_engine_sha}"
-      echo "$STS Admin Certificate Sha: ${final_pa_admin_certificate_sha}"
+      ################# 3) Compare their sha's which will detect if the engine need to be restarted to pick up new certificate  ############      
+      printf "%-25s Engine Certificate Sha: %s\n" "${pod}" "${final_pa_admin_certificate_within_engine_sha}"
+      printf "%-25s Admin Certificate Sha:  %s\n" "${STS}" "${final_pa_admin_certificate_sha}"
       
       if [ "${final_pa_admin_certificate_within_engine_sha}" != "${final_pa_admin_certificate_sha}" ]; then
         return 1
