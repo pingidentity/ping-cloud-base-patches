@@ -4,7 +4,7 @@ metadata:
   name: pingaccess-cert-validation
   namespace: ping-cloud
 spec:
-  schedule: "*/3 * * * *"        # Run every time min.
+  schedule: "0 0 * * *"           # Run once per day at midnight
   concurrencyPolicy: Forbid       # If still running, skip this run. We don't want multiple pods running.
   startingDeadlineSeconds: 300
   suspend: false
