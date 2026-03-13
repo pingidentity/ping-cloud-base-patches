@@ -104,19 +104,19 @@ data:
     }
     
     is_admin_pod_healthy() {
+      local pod="$1"
       local per_pod_timeout=600 # 10min
       local interval=5
       local end=$(( $(date +%s) + per_pod_timeout ))
-      local pod="${STS}-admin-0"
       
       # Validate that admin is accessible
       while [ "$(date +%s)" -lt "$end" ]; do
       
         if [ "$STS" = "pingaccess" ]; then
-          pa_cluster_public_hostname=$(/tmp/kubectl -n "$NAMESPACE" exec "$pod" -c "$STS-admin" -- sh -c 'echo "$PA_CLUSTER_PUBLIC_HOSTNAME"')
+          pa_cluster_public_hostname=$(/tmp/kubectl -n "$NAMESPACE" exec "$pod" -c "$STS" -- sh -c 'echo "$PA_CLUSTER_PUBLIC_HOSTNAME"')
           pa_host="pingaccess-admin-0.${pa_cluster_public_hostname}"
         else
-          pa_was_cluster_public_hostname=$(/tmp/kubectl -n "$NAMESPACE" exec "$pod" -c "$STS-admin" -- sh -c 'echo "$PA_WAS_CLUSTER_PUBLIC_HOSTNAME"')
+          pa_was_cluster_public_hostname=$(/tmp/kubectl -n "$NAMESPACE" exec "$pod" -c "$STS" -- sh -c 'echo "$PA_WAS_CLUSTER_PUBLIC_HOSTNAME"')
           pa_host="pingaccess-was-admin-0.${pa_was_cluster_public_hostname}"
         fi
       
@@ -184,7 +184,7 @@ data:
       
       echo "===== Analyzing $pod: Checking Admin Health ====="
       echo -e "Before evaluating $STS-admin pod must be accessible. Checking..."
-      if ! is_admin_pod_healthy; then
+      if ! is_admin_pod_healthy "$pod"; then
         echo "ERROR: $STS-admin not healthy. CronJob failing and wont do anything until the admin is running." >&2
         echo -e "==================================================\n"
         exit 1
