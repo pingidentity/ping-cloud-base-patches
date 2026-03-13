@@ -88,7 +88,7 @@ data:
       local end=$(( $(date +%s) + timeout_total ))
           
       while [ "$(date +%s)" -lt "$end" ]; do
-        sha=$(timeout 10s keytool -printcert -sslserver "${pa_host}:9090" | grep 'SHA256:')
+        sha=$(timeout 60s keytool -printcert -sslserver "${pa_host}:9090" | grep 'SHA256:')
     
         if [ -n "$sha" ]; then
           printf '%s\n' "$sha"
