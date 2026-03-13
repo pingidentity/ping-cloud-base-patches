@@ -182,7 +182,7 @@ data:
     while [ "$count" -lt "$REPLICAS" ]; do
       pod="${STS}-${count}"
       
-      echo "===== Checking Admin Health ====="
+      echo "===== Analyzing $pod: Checking Admin Health ====="
       echo -e "Before evaluating $STS-admin pod must be accessible. Checking..."
       if ! is_admin_pod_healthy; then
         echo "ERROR: $STS-admin not healthy. CronJob failing and wont do anything until the admin is running." >&2
@@ -192,7 +192,7 @@ data:
       echo -e "$STS-admin pod is healthy."
       echo -e "==================================================\n"
       
-      echo "===== Checking Engine(s) Health ====="
+      echo "===== Analyzing $pod: Checking all engine(s) Health ====="
       echo -e "Next up, evaluating all engines in same cluster/region. All engine pods must be healthy. Checking...\n"
       if ! is_all_engine_pods_healthy; then
         echo "ERROR: $STS not healthy. CronJob failing and wont do anything until all pods are running and ready." >&2
@@ -202,14 +202,14 @@ data:
       echo -e "All engine pods are healthy. Automation will evaluate $pod Engine certificate."
       echo -e "==================================================\n"
 
-      echo "===== Validating $pod certificate ====="
+      echo "===== Analyzing $pod: Validating $pod certificate ====="
       if validate_certificate "$pod"; then
         echo "$STS Admin certificate is the same as $pod Engine truststore certificate. Nothing needs to be done."
         echo -e "==================================================\n"
       else
         echo -e "WARNING==================================================WARNING\n"
         
-        echo "===== Retry validating $pod certificate ====="
+        echo "===== Analyzing $pod: Retry validating $pod certificate ====="
         echo "The $STS Admin certificate is not the same as the $pod Engine truststore certificate."
         echo "Engine needs to be restarted so that automation can get the latest certificate from the $STS Admin."
         /tmp/kubectl delete pod "$pod" -n "$NAMESPACE" > /dev/null
@@ -222,7 +222,7 @@ data:
         echo -e "Waiting for $pod Engine to be ready...\n"
         /tmp/kubectl wait --for=condition=Ready pod/"$pod" --timeout=600s -n "$NAMESPACE" > /dev/null
       
-        echo "===== Checking once more if restart fixed the problem. Validating $pod certificate ====="
+        echo "===== Analyzing $pod: Checking once more if restart fixed the problem. Validating $pod certificate ====="
         if ! validate_certificate "$pod"; then
           echo "ERROR===== $pod engine certificate failed validation. =====ERROR" >&2
           echo -e "==============================================================================================\n"
