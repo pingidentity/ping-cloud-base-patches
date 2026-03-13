@@ -39,6 +39,11 @@ data:
       
       pa_admin_certificate_within_engine_sha=$(keytool -printcert -file "${pa_admin_certificate_within_engine}" | grep 'SHA256:')
       
+      if [ -z "$pa_admin_certificate_within_engine_sha" ]; then
+        echo "ERROR: Failed to retrieve $pod certificate SHA"
+        return 1
+      fi
+      
       # Retrieve SHA256 only fingerprint
       final_pa_admin_certificate_within_engine_sha=$(echo "${pa_admin_certificate_within_engine_sha}" | cut -d' ' -f3)
       
