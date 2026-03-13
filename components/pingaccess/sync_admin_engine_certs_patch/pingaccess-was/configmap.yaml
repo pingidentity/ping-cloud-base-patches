@@ -54,7 +54,10 @@ data:
         pa_host="pingaccess-was-admin-0.${pa_was_cluster_public_hostname}"
       fi
       
-      pa_admin_certificate_sha=$(timeout 10s keytool -printcert -sslserver "${pa_host}:9090" | grep 'SHA256:')
+      pa_admin_certificate_sha=$(wait_for_admin_cert_sha "${pa_host}") || {
+        echo "ERROR: Failed to retrieve $STS-admin-0 certificate SHA"
+        return 1
+      }
       
       # Retrieve SHA256 only fingerprint
       final_pa_admin_certificate_sha=$(echo "${pa_admin_certificate_sha}" | cut -d' ' -f3)
@@ -71,6 +74,28 @@ data:
       ######################################################################################################################################
       
       return 0
+    }
+    
+    wait_for_admin_cert_sha() {
+      local pa_host="$1"
+      local timeout_total=600 # 10min
+      local interval=5
+      local end=$(( $(date +%s) + timeout_total ))
+          
+      while [ "$(date +%s)" -lt "$end" ]; do
+        sha=$(timeout 10s keytool -printcert -sslserver "${pa_host}:9090" | grep 'SHA256:')
+    
+        if [ -n "$sha" ]; then
+          printf '%s\n' "$sha"
+          return 0
+        fi
+
+        echo "Waiting for certificate from ${pa_host}:9090..." >&2
+        sleep "$interval"
+      done
+    
+      echo "Timed out after ${timeout_total}s waiting for certificate from ${pa_host}:9090" >&2
+      return 1
     }
     
     is_admin_pod_healthy() {
