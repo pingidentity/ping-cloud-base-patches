@@ -9,7 +9,7 @@ data:
     
     set -e
     
-    if echo "${ENV}" | grep -iq "customer-hub"; then
+    if [ "$ENV" = "customer-hub" ]; then
       exit 0 # Exit script immediately if this is a customer-hub environment. PingAccess doesn't run in customer-hub.
     fi
     
