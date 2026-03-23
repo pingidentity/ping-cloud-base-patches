@@ -10,6 +10,7 @@ data:
     set -e
     
     if [ "$ENV" != "customer-hub" ] && [ "$TENANT_DOMAIN" != "$PRIMARY_TENANT_DOMAIN" ]; then
+      echo "Exit script immediately; we don't want PingAccess-WAS running in this environment"
       exit 0 # Exit script immediately if this is a secondary region for dev,test,stage,prod and we don't want PingAccess-WAS running here.
     fi
     

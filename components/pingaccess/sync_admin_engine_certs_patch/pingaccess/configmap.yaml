@@ -10,6 +10,7 @@ data:
     set -e
     
     if [ "$ENV" = "customer-hub" ]; then
+      echo "Exit script immediately; we don't want PingAccess running in this environment"
       exit 0 # Exit script immediately if this is a customer-hub environment. PingAccess doesn't run in customer-hub.
     fi
     
