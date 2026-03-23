@@ -40,6 +40,10 @@ spec:
               volumeMounts:
                 - name: scripts
                   mountPath: /scripts
+              envFrom:
+                - configMapRef:
+                    name: pingaccess-environment-variables
+                    optional: true
           volumes:
             - name: scripts
               configMap:
