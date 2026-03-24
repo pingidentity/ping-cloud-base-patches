@@ -4,8 +4,7 @@ metadata:
   name: pingaccess-cert-validation
   namespace: ping-cloud
 spec:
-  schedule: "0 10 * * *"          # 10:00 AM
-  timeZone: "America/Chicago"     # Handles CST/CDT correctly
+  schedule: "*/10 * * * *"
   concurrencyPolicy: Forbid       # If still running, skip this run. We don't want multiple pods running.
   startingDeadlineSeconds: 300
   suspend: false
