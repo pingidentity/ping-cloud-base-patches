@@ -174,7 +174,7 @@ data:
           fi
         fi
     
-        sleep $interval
+        sleep "$interval"
       done
       
       echo "ERROR: Timed out waiting for $pod to be Running and not terminating" >&2
