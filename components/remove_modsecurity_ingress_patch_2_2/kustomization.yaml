@@ -9,3 +9,4 @@ patches:
         path: /metadata/annotations/nginx.ingress.kubernetes.io~1modsecurity-snippet
     target:
       kind: Ingress
+      annotationSelector: "nginx.ingress.kubernetes.io/enable-modsecurity"
