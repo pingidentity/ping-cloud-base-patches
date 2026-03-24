@@ -155,10 +155,11 @@ data:
 
     wait_for_new_pod_to_exist() {
       local pod="$1"
-      local attempts=20      
-      local wait_seconds=15 # With 20 attempts and waiting 15 seconds = 10min total
-      
-      while :; do
+      local timeout_total=600 # 10min
+      local interval=5
+      local end=$(( $(date +%s) + timeout_total ))
+          
+      while [ "$(date +%s)" -lt "$end" ]; do
         # Get phase + deletionTimestamp in one shot (empty output if pod doesn't exist)
         out="$(/tmp/kubectl -n "$NAMESPACE" get pod "$pod" \
           -o jsonpath='{.status.phase}{" "}{.metadata.deletionTimestamp}' 2>/dev/null || true)"
@@ -173,7 +174,7 @@ data:
           fi
         fi
     
-        sleep $wait_seconds
+        sleep $interval
       done
       
       echo "ERROR: Timed out waiting for $pod to be Running and not terminating" >&2
