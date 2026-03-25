@@ -212,12 +212,12 @@ data:
       validate_certificate "$pod"
       valid_cert_status=$?
       
-      if [ "$valid_cert_status" -eq 5 ]; then
+      if [[ "$valid_cert_status" -eq 5 ]]; then
         echo "Exit due to keytool failure"
         exit 1
       fi
 
-      if [ "$valid_cert_status" -eq 0 ]; then
+      if [[ "$valid_cert_status" -eq 0 ]]; then
         echo "$STS Admin certificate is the same as $pod Engine truststore certificate. Nothing needs to be done."
         echo -e "==================================================\n"
       else
@@ -240,12 +240,12 @@ data:
         validate_certificate "$pod"
         valid_cert_status=$?
         
-        if [ "$valid_cert_status" -eq 5 ]; then
+        if [[ "$valid_cert_status" -eq 5 ]]; then
           echo "Exit due to keytool failure"
           exit 1
         fi
         
-        if [ "$valid_cert_status" -ne 0 ]; then
+        if [[ "$valid_cert_status" -ne 0 ]]; then
           echo "ERROR===== $pod engine certificate failed validation. =====ERROR" >&2
           echo -e "==============================================================================================\n"
           exit 1
