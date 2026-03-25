@@ -46,7 +46,7 @@ data:
       
       if [ -z "$pa_admin_certificate_within_engine_sha" ]; then
         echo "ERROR: Failed to retrieve $pod certificate SHA"
-        return 1
+        return 5 # Fail with keytool failure status
       fi
       
       # Retrieve SHA256 only fingerprint
@@ -66,7 +66,7 @@ data:
       
       pa_admin_certificate_sha=$(wait_for_admin_cert_sha "${pa_host}") || {
         echo "ERROR: Failed to retrieve $STS-admin-0 certificate SHA"
-        return 1
+        return 5 # Fail with keytool failure status
       }
       
       # Retrieve SHA256 only fingerprint
@@ -209,7 +209,15 @@ data:
       echo -e "==================================================\n"
 
       echo "===== Analyzing $pod: Validating $pod certificate ====="
-      if validate_certificate "$pod"; then
+      validate_certificate "$pod"
+      valid_cert_status=$?
+      
+      if [ "$valid_cert_status" -eq 5 ]; then
+        echo "Exit due to keytool failure"
+        exit 1
+      fi
+
+      if [ "$valid_cert_status" -eq 0 ]; then
         echo "$STS Admin certificate is the same as $pod Engine truststore certificate. Nothing needs to be done."
         echo -e "==================================================\n"
       else
@@ -229,7 +237,15 @@ data:
         /tmp/kubectl wait --for=condition=Ready pod/"$pod" --timeout=600s -n "$NAMESPACE" > /dev/null
       
         echo "===== Analyzing $pod: Checking once more if restart fixed the problem. Validating $pod certificate ====="
-        if ! validate_certificate "$pod"; then
+        validate_certificate "$pod"
+        valid_cert_status=$?
+        
+        if [ "$valid_cert_status" -eq 5 ]; then
+          echo "Exit due to keytool failure"
+          exit 1
+        fi
+        
+        if [ "$valid_cert_status" -eq 0 ]; then
           echo "ERROR===== $pod engine certificate failed validation. =====ERROR" >&2
           echo -e "==============================================================================================\n"
           exit 1
