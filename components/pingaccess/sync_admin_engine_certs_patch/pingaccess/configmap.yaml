@@ -212,6 +212,8 @@ data:
       validate_certificate "$pod"
       valid_cert_status=$?
       
+      echo "valid_cert_status: $valid_cert_status"
+      
       if [[ "$valid_cert_status" -eq 5 ]]; then
         echo "Exit due to keytool failure"
         exit 1
@@ -239,6 +241,8 @@ data:
         echo "===== Analyzing $pod: Checking once more if restart fixed the problem. Validating $pod certificate ====="
         validate_certificate "$pod"
         valid_cert_status=$?
+        
+        echo "valid_cert_status: $valid_cert_status"
         
         if [[ "$valid_cert_status" -eq 5 ]]; then
           echo "Exit due to keytool failure"
