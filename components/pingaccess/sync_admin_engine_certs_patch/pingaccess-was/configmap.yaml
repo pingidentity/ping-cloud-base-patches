@@ -245,7 +245,7 @@ data:
           exit 1
         fi
         
-        if [ "$valid_cert_status" -eq 0 ]; then
+        if [ "$valid_cert_status" -ne 0 ]; then
           echo "ERROR===== $pod engine certificate failed validation. =====ERROR" >&2
           echo -e "==============================================================================================\n"
           exit 1
