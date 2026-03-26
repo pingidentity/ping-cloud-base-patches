@@ -19,9 +19,39 @@ spec:
           restartPolicy: Never
           securityContext:
             fsGroup: 9999
+          initContainers:
+            - name: seed
+              image: public.ecr.aws/r2h3l6e4/pingcloud-apps/pingaccess:v2.1.0
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/sh", "-c"]
+              args:
+                - /scripts/run.sh
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 64Mi
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                privileged: false
+                readOnlyRootFilesystem: true
+                runAsGroup: 9999
+                runAsNonRoot: true
+                runAsUser: 9031
+              volumeMounts:
+                - name: pingaccess-install-kubectl-script
+                  mountPath: /scripts
+                - name: temp-dir
+                  mountPath: /tmp
           containers:
             - name: runner
               image: public.ecr.aws/r2h3l6e4/pingcloud-apps/pingaccess:v2.1.0
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/sh", "-c"]
+              args:
+                - /scripts/run.sh
               securityContext:
                 runAsGroup: 9999
                 runAsNonRoot: true
@@ -29,16 +59,11 @@ spec:
                 allowPrivilegeEscalation: false
                 privileged: false
                 readOnlyRootFilesystem: true
-              command: ["/bin/sh", "-c"]
-              args:
-                - /scripts/run.sh
               env:
                 - name: STS
                   value: pingaccess
                 - name: NAMESPACE
                   value: ping-cloud
-                - name: KUBECTL_VERSION
-                  value: v1.30.4
               resources:
                 requests:
                   cpu: 100m
@@ -47,14 +72,23 @@ spec:
                   cpu: 100m
                   memory: 256Mi
               volumeMounts:
-                - name: scripts
+                - name: pingaccess-verify-certificate
                   mountPath: /scripts
+                # Mount empty dir that has kubectl that was installed by init-container
+                - name: temp-dir
+                  mountPath: /tmp
               envFrom:
                 - configMapRef:
                     name: pingaccess-environment-variables
                     optional: true
           volumes:
-            - name: scripts
+            - name: pingaccess-verify-certificate
               configMap:
                 name: pingaccess-verify-certificate
                 defaultMode: 0755
+            - name: pingaccess-install-kubectl-script
+              configMap:
+                name: pingaccess-install-kubectl-script
+                defaultMode: 0755
+            - name: temp-dir
+              emptyDir: {}

@@ -1,6 +1,29 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  name: pingaccess-install-kubectl-script
+  namespace: ping-cloud
+data:
+  run.sh: |
+    #!/usr/bin/env sh
+    
+    set -e
+    
+    # Install kubectl
+    if [ "$(uname -m)" = "aarch64" ]; then
+        curl -sS https://storage.googleapis.com/kubernetes-release/release/v1.30.4/bin/linux/arm64/kubectl \
+        -o /tmp/kubectl
+    else
+        curl -sS https://storage.googleapis.com/kubernetes-release/release/v1.30.4/bin/linux/amd64/kubectl \
+        -o /tmp/kubectl
+    fi
+    chmod 755 /tmp/kubectl
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
   name: pingaccess-verify-certificate
   namespace: ping-cloud
 data:
@@ -13,16 +36,6 @@ data:
       echo "Exit script immediately; we don't want PingAccess running in this environment"
       exit 0 # Exit script immediately if this is a customer-hub environment. PingAccess doesn't run in customer-hub.
     fi
-    
-    # Install kubectl
-    if [[ "`uname -m`" == "aarch64" ]] ; then
-        curl -sS https://storage.googleapis.com/kubernetes-release/release/"${KUBECTL_VERSION}"/bin/linux/arm64/kubectl \
-        -o /tmp/kubectl
-    else
-        curl -sS https://storage.googleapis.com/kubernetes-release/release/"${KUBECTL_VERSION}"/bin/linux/amd64/kubectl \
-        -o /tmp/kubectl
-    fi
-    chmod +x /tmp/kubectl
     
     validate_certificate() {
       local pod="$1"
