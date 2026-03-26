@@ -1,0 +1,281 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pingaccess-was-install-kubectl-script
+  namespace: ping-cloud
+data:
+  run.sh: |
+    #!/usr/bin/env sh
+    
+    set -e
+    
+    # Install kubectl
+    if [ "$(uname -m)" = "aarch64" ]; then
+        curl -sS https://storage.googleapis.com/kubernetes-release/release/v1.30.4/bin/linux/arm64/kubectl \
+        -o /tmp/kubectl
+    else
+        curl -sS https://storage.googleapis.com/kubernetes-release/release/v1.30.4/bin/linux/amd64/kubectl \
+        -o /tmp/kubectl
+    fi
+    chmod 755 /tmp/kubectl
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pingaccess-was-verify-certificate
+  namespace: ping-cloud
+data:
+  run.sh: |
+    #!/usr/bin/env sh
+    
+    set -e
+    
+    if [ "$ENV" != "customer-hub" ] && [ "$TENANT_DOMAIN" != "$PRIMARY_TENANT_DOMAIN" ]; then
+      echo "Exit script immediately; we don't want PingAccess-WAS running in this environment"
+      exit 0 # Exit script immediately if this is a secondary region for dev,test,stage,prod and we don't want PingAccess-WAS running here.
+    fi
+    
+    validate_certificate() {
+      local pod="$1"
+      
+      ############ 1) Extract the PingAccess Admin certificate that's in the PingAccess Engine Truststore configuration ##################
+      
+      bootstrap_conf_file_content=$(/tmp/kubectl -n "$NAMESPACE" exec "$pod" -c "$STS" -- sh -c "cat /opt/out/instance/conf/bootstrap.properties")
+      
+      # Extract certificate payload from bootstrap.properties
+      bootstrap_conf_json=$(echo "${bootstrap_conf_file_content}" | grep 'engine.admin.configuration.bootstrap.truststore=' | cut -d'=' -f2-)
+      pa_admin_certificate_within_engine_x5c=$(echo "${bootstrap_conf_json}" | jq -r '.keys[0].x5c[0]')
+      begin_certificate_header="-----BEGIN CERTIFICATE-----"
+      end_certificate_footer="-----END CERTIFICATE-----"
+      
+      pa_admin_certificate_within_engine=$(mktemp)
+      echo "${begin_certificate_header}" > "${pa_admin_certificate_within_engine}"
+      echo "${pa_admin_certificate_within_engine_x5c}" >> "${pa_admin_certificate_within_engine}"
+      echo "${end_certificate_footer}" >> "${pa_admin_certificate_within_engine}"
+      
+      pa_admin_certificate_within_engine_sha=$(keytool -printcert -file "${pa_admin_certificate_within_engine}" | grep 'SHA256:')
+      
+      if [ -z "$pa_admin_certificate_within_engine_sha" ]; then
+        echo "ERROR: Failed to retrieve $pod certificate SHA"
+        return 5 # Fail with keytool failure status
+      fi
+      
+      # Retrieve SHA256 only fingerprint
+      final_pa_admin_certificate_within_engine_sha=$(echo "${pa_admin_certificate_within_engine_sha}" | cut -d' ' -f3)
+      
+      ######################################################################################################################################
+      
+      ################################ 2) Extract the true PingAccess Admin certificate  ###################################################
+      
+      if [ "$STS" = "pingaccess" ]; then
+        pa_cluster_public_hostname=$(/tmp/kubectl -n "$NAMESPACE" exec "$pod" -c "$STS" -- sh -c 'echo "$PA_CLUSTER_PUBLIC_HOSTNAME"')
+        pa_host="pingaccess-admin-0.${pa_cluster_public_hostname}"
+      else
+        pa_was_cluster_public_hostname=$(/tmp/kubectl -n "$NAMESPACE" exec "$pod" -c "$STS" -- sh -c 'echo "$PA_WAS_CLUSTER_PUBLIC_HOSTNAME"')
+        pa_host="pingaccess-was-admin-0.${pa_was_cluster_public_hostname}"
+      fi
+      
+      pa_admin_certificate_sha=$(wait_for_admin_cert_sha "${pa_host}") || {
+        echo "ERROR: Failed to retrieve $STS-admin-0 certificate SHA"
+        return 5 # Fail with keytool failure status
+      }
+      
+      # Retrieve SHA256 only fingerprint
+      final_pa_admin_certificate_sha=$(echo "${pa_admin_certificate_sha}" | cut -d' ' -f3)
+      
+      ######################################################################################################################################
+      
+      ################# 3) Compare their sha's which will detect if the engine need to be restarted to pick up new certificate  ############      
+      printf "%-30s Engine Certificate Sha: %s\n" "${pod}" "${final_pa_admin_certificate_within_engine_sha}"
+      printf "%-30s Admin Certificate Sha:  %s\n" "${STS}-admin-0" "${final_pa_admin_certificate_sha}"
+      
+      if [ "${final_pa_admin_certificate_within_engine_sha}" != "${final_pa_admin_certificate_sha}" ]; then
+        return 1
+      fi
+      ######################################################################################################################################
+      
+      return 0
+    }
+    
+    wait_for_admin_cert_sha() {
+      local pa_host="$1"
+      local timeout_total=600 # 10min
+      local interval=5
+      local end=$(( $(date +%s) + timeout_total ))
+          
+      while [ "$(date +%s)" -lt "$end" ]; do
+        sha=$(timeout 60s keytool -printcert -sslserver "${pa_host}:9090" | grep 'SHA256:')
+    
+        if [ -n "$sha" ]; then
+          printf '%s\n' "$sha"
+          return 0
+        fi
+
+        echo "Waiting for certificate from ${pa_host}:9090..." >&2
+        sleep "$interval"
+      done
+    
+      echo "Timed out after ${timeout_total}s waiting for certificate from ${pa_host}:9090" >&2
+      return 1
+    }
+    
+    is_admin_pod_healthy() {
+      local pod="$1"
+      local per_pod_timeout=600 # 10min
+      local interval=5
+      local end=$(( $(date +%s) + per_pod_timeout ))
+      
+      # Validate that admin is accessible
+      while [ "$(date +%s)" -lt "$end" ]; do
+      
+        if [ "$STS" = "pingaccess" ]; then
+          pa_cluster_public_hostname=$(/tmp/kubectl -n "$NAMESPACE" exec "$pod" -c "$STS" -- sh -c 'echo "$PA_CLUSTER_PUBLIC_HOSTNAME"')
+          pa_host="pingaccess-admin-0.${pa_cluster_public_hostname}"
+        else
+          pa_was_cluster_public_hostname=$(/tmp/kubectl -n "$NAMESPACE" exec "$pod" -c "$STS" -- sh -c 'echo "$PA_WAS_CLUSTER_PUBLIC_HOSTNAME"')
+          pa_host="pingaccess-was-admin-0.${pa_was_cluster_public_hostname}"
+        fi
+      
+        if nc -z -v -w 2 "$pa_host" "9090"; then
+          return 0
+        fi
+        
+        sleep "$interval"
+      done
+      
+      echo "ERROR: ${STS}-admin did not become Ready within $per_pod_timeout" >&2
+      return 1
+    }
+    
+    is_all_engine_pods_healthy() {
+      local count=0
+      local per_pod_timeout=10m
+      
+      while [ "$count" -lt "$REPLICAS" ]; do
+        local pod="${STS}-${count}"
+        if ! /tmp/kubectl -n "$NAMESPACE" wait --for=condition=Ready "pod/$pod" --timeout="$per_pod_timeout" > /dev/null; then
+          echo "ERROR: $pod did not become Ready within $per_pod_timeout" >&2
+          return 1
+        fi
+    
+        count=$((count+1))
+      done
+    
+      return 0
+    }
+
+    wait_for_new_pod_to_exist() {
+      local pod="$1"
+      local timeout_total=600 # 10min
+      local interval=5
+      local end=$(( $(date +%s) + timeout_total ))
+          
+      while [ "$(date +%s)" -lt "$end" ]; do
+        # Get phase + deletionTimestamp in one shot (empty output if pod doesn't exist)
+        out="$(/tmp/kubectl -n "$NAMESPACE" get pod "$pod" \
+          -o jsonpath='{.status.phase}{" "}{.metadata.deletionTimestamp}' 2>/dev/null || true)"
+    
+        if [ -n "$out" ]; then
+          phase=$(printf '%s' "$out" | awk '{print $1}')
+          deletion_ts=$(printf '%s' "$out" | awk '{print $2}')
+    
+          # Not terminating if deletionTimestamp is empty
+          if [ "$phase" = "Running" ] && [ -z "$deletion_ts" ]; then
+            return 0
+          fi
+        fi
+    
+        sleep "$interval"
+      done
+      
+      echo "ERROR: Timed out waiting for $pod to be Running and not terminating" >&2
+      /tmp/kubectl -n "$NAMESPACE" get pod "$pod" -o wide 2>/dev/null || true
+      return 1
+    }
+    
+    REPLICAS=$(/tmp/kubectl -n "$NAMESPACE" get statefulset "$STS" -o jsonpath='{.spec.replicas}')
+    count=0
+    
+    while [ "$count" -lt "$REPLICAS" ]; do
+      pod="${STS}-${count}"
+      
+      echo "===== Analyzing $pod: Checking Admin Health ====="
+      echo -e "Before evaluating $STS-admin pod must be accessible. Checking..."
+      if ! is_admin_pod_healthy "$pod"; then
+        echo "ERROR: $STS-admin not healthy. CronJob failing and wont do anything until the admin is running." >&2
+        echo -e "==================================================\n"
+        exit 1
+      fi
+      echo -e "$STS-admin pod is healthy."
+      echo -e "==================================================\n"
+      
+      echo "===== Analyzing $pod: Checking all engine(s) Health ====="
+      echo -e "Next up, evaluating all engines in same cluster/region. All engine pods must be healthy. Checking...\n"
+      if ! is_all_engine_pods_healthy; then
+        echo "ERROR: $STS not healthy. CronJob failing and wont do anything until all pods are running and ready." >&2
+        echo -e "==================================================\n"
+        exit 1
+      fi
+      echo -e "All engine pods are healthy. Automation will evaluate $pod Engine certificate."
+      echo -e "==================================================\n"
+
+      echo "===== Analyzing $pod: Validating $pod certificate ====="
+      set +e
+      validate_certificate "$pod"
+      valid_cert_status=$?
+      set -e
+      
+      echo "valid_cert_status: $valid_cert_status"
+      
+      if [ "$valid_cert_status" -eq 5 ]; then
+        echo "Exit due to keytool failure"
+        exit 1
+      fi
+
+      if [ "$valid_cert_status" -eq 0 ]; then
+        echo "$STS Admin certificate is the same as $pod Engine truststore certificate. Nothing needs to be done."
+        echo -e "==================================================\n"
+      else
+        echo -e "WARNING==================================================WARNING\n"
+        
+        echo "===== Analyzing $pod: Retry validating $pod certificate ====="
+        echo "The $STS Admin certificate is not the same as the $pod Engine truststore certificate."
+        echo "Engine needs to be restarted so that automation can get the latest certificate from the $STS Admin."
+        /tmp/kubectl delete pod "$pod" -n "$NAMESPACE" > /dev/null
+              
+        echo "Waiting for new $pod Engine to exist in the cluster again (and not be terminating)..."
+        if ! wait_for_new_pod_to_exist "$pod"; then
+          exit 1
+        fi
+        
+        echo -e "Waiting for $pod Engine to be ready...\n"
+        /tmp/kubectl wait --for=condition=Ready pod/"$pod" --timeout=600s -n "$NAMESPACE" > /dev/null
+      
+        echo "===== Analyzing $pod: Checking once more if restart fixed the problem. Validating $pod certificate ====="
+        set +e
+        validate_certificate "$pod"
+        valid_cert_status=$?
+        set -e
+        
+        echo "valid_cert_status: $valid_cert_status"
+        
+        if [ "$valid_cert_status" -eq 5 ]; then
+          echo "Exit due to keytool failure"
+          exit 1
+        fi
+        
+        if [ "$valid_cert_status" -ne 0 ]; then
+          echo "ERROR===== $pod engine certificate failed validation. =====ERROR" >&2
+          echo -e "==============================================================================================\n"
+          exit 1
+        else
+          echo "Restart worked!!! The $STS Admin certificate is now the same as $pod Engine truststore certificate. Nothing else needs to be for this engine."
+          echo -e "==============================================================================================\n"
+        fi
+      fi
+      count=$((count+1))
+    done
+    
+    echo -e "All $STS Engines are certificates are up to date with the $STS admin"

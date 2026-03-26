@@ -1,0 +1,94 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pingaccess-was-cert-validation
+  namespace: ping-cloud
+spec:
+  schedule: "*/10 * * * *"
+  concurrencyPolicy: Forbid       # If still running, skip this run. We don't want multiple pods running.
+  startingDeadlineSeconds: 300
+  suspend: false
+  successfulJobsHistoryLimit: 0
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 0             # Don't retry failed jobs
+      template:
+        spec:
+          serviceAccountName: pingaccess-was-cert-maintainer
+          restartPolicy: Never
+          securityContext:
+            fsGroup: 9999
+          initContainers:
+            - name: seed
+              image: public.ecr.aws/r2h3l6e4/pingcloud-apps/pingaccess-was:v2.1.0
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/sh", "-c"]
+              args:
+                - /scripts/run.sh
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 64Mi
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                privileged: false
+                readOnlyRootFilesystem: true
+                runAsGroup: 9999
+                runAsNonRoot: true
+                runAsUser: 9031
+              volumeMounts:
+                - name: pingaccess-was-install-kubectl-script
+                  mountPath: /scripts
+                - name: temp-dir
+                  mountPath: /tmp
+          containers:
+            - name: runner
+              image: public.ecr.aws/r2h3l6e4/pingcloud-apps/pingaccess-was:v2.1.0
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/sh", "-c"]
+              args:
+                - /scripts/run.sh
+              securityContext:
+                runAsGroup: 9999
+                runAsNonRoot: true
+                runAsUser: 9031
+                allowPrivilegeEscalation: false
+                privileged: false
+                readOnlyRootFilesystem: true
+              env:
+                - name: STS
+                  value: pingaccess-was
+                - name: NAMESPACE
+                  value: ping-cloud
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: 100m
+                  memory: 256Mi
+              volumeMounts:
+                - name: pingaccess-was-verify-certificate
+                  mountPath: /scripts
+                # Mount empty dir that has kubectl that was installed by init-container
+                - name: temp-dir
+                  mountPath: /tmp
+              envFrom:
+                - configMapRef:
+                    name: pingaccess-was-environment-variables
+                    optional: true
+          volumes:
+            - name: pingaccess-was-verify-certificate
+              configMap:
+                name: pingaccess-was-verify-certificate
+                defaultMode: 0755
+            - name: pingaccess-was-install-kubectl-script
+              configMap:
+                name: pingaccess-was-install-kubectl-script
+                defaultMode: 0755
+            - name: temp-dir
+              emptyDir: {}
