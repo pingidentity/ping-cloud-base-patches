@@ -1,0 +1,31 @@
+apiVersion: opensearch.opster.io/v1
+kind: OpenSearchCluster
+metadata:
+  name: opensearch-cluster
+spec:
+  general:
+    securityContext:
+      capabilities:
+        add:
+          - IPC_LOCK
+    additionalConfig:
+      search.insights.top_queries.cpu.enabled: "false"
+      search.insights.top_queries.memory.enabled: "false"
+      search.insights.top_queries.latency.enabled: "false"
+      shard_indexing_pressure.enabled: "true"
+      shard_indexing_pressure.enforced: "true"
+      indices.recovery.max_bytes_per_sec: "100mb"
+      cluster.routing.allocation.node_concurrent_recoveries: "4"
+      cluster.routing.allocation.node_concurrent_incoming_recoveries: "4"
+      cluster.routing.allocation.node_concurrent_outgoing_recoveries: "4"
+      cluster.routing.allocation.cluster_concurrent_rebalance: "3"
+  nodePools:
+    - component: hot
+      jvm: -Xms4g -Xmx4g -XX:MaxDirectMemorySize=2g
+      resources:
+        requests:
+          memory: 24Gi
+          cpu: "8"
+        limits:
+          memory: 24Gi
+          cpu: "8"

@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: logstash-elastic-s3
+spec:
+  volumeClaimTemplates:
+    - metadata:
+        name: logstash-s3-gp3
+      spec:
+        resources:
+          requests:
+            storage: 20Gi
+  template:
+    spec:
+      containers:
+        - name: logstash
+          resources:
+            limits:
+              cpu: "4"
+              memory: 12Gi
+            requests:
+              cpu: "4"
+              memory: 12Gi
+          env:
+            - name: LS_JAVA_OPTS
+              value: >-
+                -Xms6g -Xmx6g -XX:MaxDirectMemorySize=2g
+                -Djava.io.tmpdir=/usr/share/logstash/data/tmp
+                -Dlogstash.geoip.database.path=/usr/share/logstash/data/plugins/filters/geoip
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-pipelines-s3
+data:
+  pipelines.yml: |
+    - pipeline.id: s3
+      path.config: "/usr/share/logstash/pipeline/s3"
+      pipeline.workers: 4
+      pipeline.batch.size: 2000
+      pipeline.batch.delay: 100
+      queue.type: persisted
+      queue.max_bytes: 10gb
+      queue.drain: true
+      queue.checkpoint.writes: 1024
+      dead_letter_queue.enable: false
