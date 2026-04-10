@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+patches:
+- path: fluentbit/fluentbit-resources.yaml
+- path: elastic-stack/logstash/logstash-limits.yaml
+- path: elastic-stack/logstash/hpa-limits.yaml
+- path: elastic-stack/opensearch/os-limits.yaml
+
+configMapGenerator:
+- behavior: replace
+  name: fluent-bit-config
+  files:
+  - fluentbit/configs/fluent-bit.conf
+  literals:
+  - log.level=error
+  - read.head=True
+  - read.tail=Off
+  - newrelic_cluster_name=cluster_name
+- behavior: replace
+  name: fluent-bit-pipeline-core
+  files:
+  - fluentbit/configs/pipeline-core.conf
+- behavior: replace
+  name: fluent-bit-pipeline-outputs
+  files:
+  - fluentbit/configs/pipeline-outputs.conf

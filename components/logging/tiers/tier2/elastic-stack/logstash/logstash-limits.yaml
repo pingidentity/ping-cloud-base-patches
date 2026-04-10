@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: logstash-elastic
+spec:
+  template:
+    spec:
+      containers:
+        - name: logstash
+          resources:
+            limits:
+              cpu: "2"
+              memory: 8Gi
+            requests:
+              cpu: "2"
+              memory: 8Gi
+          env:
+            - name: LS_JAVA_OPTS
+              value: >-
+                -Xms3700m -Xmx3700m -XX:MaxDirectMemorySize=1g
+                -Djava.io.tmpdir=/usr/share/logstash/data/tmp
+                -Dlogstash.geoip.database.path=/usr/share/logstash/data/plugins/filters/geoip
+  volumeClaimTemplates:
+    - metadata:
+        name: logstash-gp3
+      spec:
+        resources:
+          requests:
+            storage: 40Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: logstash-elastic-s3
+spec:
+  template:
+    spec:
+      containers:
+        - name: logstash
+          resources:
+            limits:
+              cpu: "2"
+              memory: 8Gi
+            requests:
+              cpu: "2"
+              memory: 8Gi
+          env:
+            - name: LS_JAVA_OPTS
+              value: >-
+                -Xms3700m -Xmx3700m -XX:MaxDirectMemorySize=1g
+                -Djava.io.tmpdir=/usr/share/logstash/data/tmp
+                -Dlogstash.geoip.database.path=/usr/share/logstash/data/plugins/filters/geoip
+  volumeClaimTemplates:
+    - metadata:
+        name: logstash-s3-gp3
+      spec:
+        resources:
+          requests:
+            storage: 20Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-pipelines
+data:
+  pipelines.yml: |
+    - pipeline.id: main
+      path.config: "/usr/share/logstash/pipeline/main"
+      pipeline.workers: 2
+      pipeline.batch.size: 750
+      pipeline.batch.delay: 50
+      queue.type: persisted
+      queue.max_bytes: 10gb
+      queue.drain: true
+      queue.checkpoint.writes: 256
+      dead_letter_queue.enable: true
+
+    - pipeline.id: customer
+      path.config: "/usr/share/logstash/pipeline/customer"
+      pipeline.workers: 2
+      pipeline.batch.size: 500
+      pipeline.batch.delay: 50
+      queue.type: persisted
+      queue.max_bytes: 10gb
+      queue.drain: true
+      queue.checkpoint.writes: 256
+      dead_letter_queue.enable: false
+
+    - pipeline.id: dlq
+      path.config: "/usr/share/logstash/pipeline/dlq"
+      pipeline.workers: 1
+      pipeline.batch.size: 100
+      pipeline.batch.delay: 50
+      queue.type: persisted
+      queue.max_bytes: 5gb
+      queue.drain: true
+      queue.checkpoint.writes: 1
+      dead_letter_queue.enable: false
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-pipelines-s3
+data:
+  pipelines.yml: |
+    - pipeline.id: s3
+      path.config: "/usr/share/logstash/pipeline/s3"
+      pipeline.workers: 2
+      pipeline.batch.size: 500
+      pipeline.batch.delay: 50
+      queue.type: persisted
+      queue.max_bytes: 10gb
+      queue.drain: true
+      queue.checkpoint.writes: 256
+      dead_letter_queue.enable: false

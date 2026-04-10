@@ -1,0 +1,521 @@
+# =============================================================================
+# logstash.yaml
+# Ref: https://pingidentity.atlassian.net/wiki/spaces/PDA/pages/2729934964/Logstash+Configuration
+# =============================================================================
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-pipelines
+data:
+  pipelines.yml: |
+    - pipeline.id: main
+      path.config: "/usr/share/logstash/pipeline/main"
+      pipeline.workers: 1
+      pipeline.batch.size: 500
+      pipeline.batch.delay: 50
+      queue.type: persisted
+      queue.max_bytes: 10gb
+      queue.drain: true
+      queue.checkpoint.writes: 128
+      dead_letter_queue.enable: true
+
+    - pipeline.id: customer
+      path.config: "/usr/share/logstash/pipeline/customer"
+      pipeline.workers: 1
+      pipeline.batch.size: 500
+      pipeline.batch.delay: 50
+      queue.type: persisted
+      queue.max_bytes: 10gb
+      queue.drain: true
+      queue.checkpoint.writes: 128
+      dead_letter_queue.enable: false # Intentional — external endpoint, failures dropped by design.
+
+    - pipeline.id: dlq
+      path.config: "/usr/share/logstash/pipeline/dlq"
+      pipeline.workers: 1
+      pipeline.batch.size: 100
+      pipeline.batch.delay: 50
+      queue.type: persisted
+      queue.max_bytes: 5gb
+      queue.drain: true
+      queue.checkpoint.writes: 1
+      dead_letter_queue.enable: false
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: logstash-elastic
+  labels:
+    app: logstash-elastic
+spec:
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: logstash-elastic
+  template:
+    metadata:
+      labels:
+        app: logstash-elastic
+    spec:
+      securityContext:
+        fsGroup: 1000
+        runAsNonRoot: true
+      serviceAccountName: logstash-elastic
+      affinity:
+        podAntiAffinity:
+          # Add a soft requirement for each Logstash pod to be deployed to a different AZ
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 1
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - logstash-elastic
+                topologyKey: "topology.kubernetes.io/zone"
+      initContainers:
+        - name: seed-logstash
+          image: public.ecr.aws/r2h3l6e4/pingcloud-monitoring/logstash/dev:v2.3-release-branch-latest
+          command: 
+            - 'sh'
+            - '-c'
+            - |
+              # Copy the default configs into the writable volume
+              cp -r /usr/share/logstash/config/* /mnt/config/
+              cp -r /usr/share/logstash/data/* /mnt/data/
+              cp -r /tmp/* /mnt/tmp/              
+              # Create logstash tmp directory
+              mkdir -p /mnt/data/tmp
+          volumeMounts:
+            - name: logstash-config
+              mountPath: /mnt/config
+            - name: logstash-data
+              mountPath: /mnt/data
+            - name: tmp-dir
+              mountPath: /mnt/tmp
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            privileged: false
+        - name: opensearch-bootstrap
+          image: public.ecr.aws/r2h3l6e4/pingcloud-monitoring/os-bootstrap/dev:v2.3-release-branch-latest
+          imagePullPolicy: Always
+          env:
+          - name: OS_HOST
+            value: "opensearch.elastic-stack-logging.svc.cluster.local"
+          - name: OS_PORT
+            value: "9200"
+          - name: BOOTSTRAP_USER
+            valueFrom:
+              secretKeyRef:
+                key: username
+                name: os-bootstrap-creds
+          - name: BOOTSTRAP_PASS
+            valueFrom:
+              secretKeyRef:
+                key: password
+                name: os-bootstrap-creds
+          - name: TENANT_DOMAIN
+            valueFrom:
+              configMapKeyRef:
+                name: cluster-info
+                key: tenant_domain
+          - name: PRIMARY_TENANT_DOMAIN
+            valueFrom:
+              configMapKeyRef:
+                name: cluster-info
+                key: primary_tenant_domain
+          - name: INDEX_TEMPLATES_PATH
+            value: "/usr/share/opensearch/data/index-templates"
+          - name: ALERTS_PATH
+            value: "/usr/share/opensearch/data/alerts"
+          - name: NOTIFICATIONS_PATH
+            value: "/usr/share/opensearch/data/notifications"
+          - name: ISM_PATH
+            value: "/usr/share/opensearch/data/ism-policies"
+          - name: OSD_URL
+            value: "http://opensearch-dashboards:5601"
+          - name: DASHBOARDS_PATH
+            value: "/usr/share/opensearch/data/dashboards"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 9031
+            runAsGroup: 9999
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: os-notifications-channels
+              mountPath: /usr/share/opensearch/data/notifications
+            - name: os-dashboards-pd
+              mountPath: /usr/share/opensearch/data/dashboards/pd
+            - name: os-dashboards-pf
+              mountPath: /usr/share/opensearch/data/dashboards/pf
+            - name: os-dashboards-pf-threat
+              mountPath: /usr/share/opensearch/data/dashboards/pf-threat
+            - name: os-dashboards-pa
+              mountPath: /usr/share/opensearch/data/dashboards/pa
+            - name: os-dashboards-pa-was
+              mountPath: /usr/share/opensearch/data/dashboards/pa-was
+        - name: create-enrichment-cache-files
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: true
+          image: public.ecr.aws/r2h3l6e4/pingcloud-monitoring/enrichment-bootstrap/dev:v2.3-release-branch-latest
+          imagePullPolicy: Always
+          args:
+            - create_enrichment_cache_files
+          env:
+            - name: ENRICHMENT_TOR_FEED_URL
+              value: 'https://check.torproject.org/exit-addresses'
+            - name: ENRICHMENT_ALIEN_VAULT_FEED_URL
+              value: 'https://reputation.alienvault.com/reputation.generic'
+            - name: ENRICHMENT_FILEPATH
+              value: /enrichment-cache-files/
+            - name: PYTHONUNBUFFERED
+              value: '1'
+            - name: PYTHONIOENCODING
+              value: UTF-8
+          volumeMounts:
+            - name: enrichment-cache
+              mountPath: /enrichment-cache
+            - name: enrichment-cache-files
+              mountPath: /enrichment-cache-files
+      containers:
+        - name: exporter
+          args:
+          - --logstash.endpoint=http://localhost:9600
+          image: public.ecr.aws/r2h3l6e4/pingcloud-clustertools/prom/logstash-exporter:v0.0.1
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: true
+          ports:
+            - containerPort: 9198
+              name: metrics
+              protocol: TCP
+          resources:
+            limits:
+              cpu: "500m"
+              memory: 500Mi
+            requests:
+              cpu: "150m"
+              memory: 100Mi
+        - name: logstash
+          image: public.ecr.aws/r2h3l6e4/pingcloud-monitoring/logstash/dev:v2.3-release-branch-latest
+          imagePullPolicy: Always
+          command:
+            - "/bin/sh"
+          args:
+            - "-c"
+            - "/usr/local/bin/docker-entrypoint"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: true
+          env:
+            - name: CONTAINER_NAME
+              value: logstash
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: CONFIG_RELOAD_AUTOMATIC
+              value: 'false'
+            - name: LOG_FORMAT
+              value: json
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: cluster-info
+                  key: log.level
+            - name: PIPELINE_ECS_COMPATIBILITY
+              value: disabled
+            - name: PIPELINE_ORDERED
+              value: 'false'
+            # Force the Ruby layer to use your writable data/tmp
+            - name: TMPDIR
+              value: "/usr/share/logstash/data/tmp"
+            - name: PATH_DEAD_LETTER_QUEUE
+              value: "/usr/share/logstash/data/queue/dead_letter"
+            - name: LS_JAVA_OPTS
+              # Heap/direct split sized for stable GC and IO buffer headroom.
+              # Point Java/JRuby to a sub-folder inside our writable volume
+              # This bypasses the world-writable /tmp logstash warning entirely
+              value: >-
+                -Xms1g -Xmx1g -XX:MaxDirectMemorySize=512m
+                -Djava.io.tmpdir=/usr/share/logstash/data/tmp 
+                -Dlogstash.geoip.database.path=/usr/share/logstash/data/plugins/filters/geoip
+            - name: XPACK_MONITORING_ENABLED
+              value: "false"
+            - name: OS_USER
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: os-logstash-creds
+            - name: OS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: os-logstash-creds
+            - name: AWS_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: cluster-info
+                  key: logs.region
+            - name: CW_CLUSTER_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: cluster-info
+                  key: cluster.name
+          envFrom:
+            - configMapRef:
+                name: elk-environment-variables
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: 9600
+            initialDelaySeconds: 300
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 10
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 3
+            timeoutSeconds: 5
+          startupProbe:
+            failureThreshold: 30
+            httpGet:
+              path: /
+              port: 8080
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          resources:
+            # Guaranteed QoS (requests = limits).
+            # Ensures dedicated CPU & Mem reservation for Logstash to avoid
+            # CPU throttling &noisy-neighbor interference
+            limits:
+              cpu: "1"
+              memory: 5Gi
+            requests:
+              cpu: "1"
+              memory: 5Gi
+          ports:
+            - containerPort: 9600
+              name: rest
+              protocol: TCP
+            - containerPort: 8080
+              name: http-log-input
+              protocol: TCP
+            - containerPort: 8082
+              name: http-cw-input
+              protocol: TCP
+          volumeMounts:
+            - name: logstash-data
+              mountPath: /usr/share/logstash/data
+            - name: tmp-dir
+              mountPath: /tmp
+            - name: logstash-config
+              mountPath: /usr/share/logstash/config
+            - name: logstash-logs
+              mountPath: /usr/share/logstash/logs
+            - name: logstash-pipelines
+              mountPath: /usr/share/logstash/config/pipelines.yml
+              subPath: pipelines.yml
+            - name: logstash-pipeline-customer
+              mountPath: /usr/share/logstash/pipeline/customer  
+              readOnly: true
+            - name: enrichment-cache-files
+              mountPath: /enrichment-cache-files
+              readOnly: false
+            - name: logstash-gp3
+              mountPath: /usr/share/logstash/data/queue
+              readOnly: false
+        # Sidecar enrichment container which updates Logstash dictionaries
+        - name: enrichment-sidecar
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: true
+          image: public.ecr.aws/r2h3l6e4/pingcloud-monitoring/enrichment-bootstrap/dev:v2.3-release-branch-latest
+          imagePullPolicy: Always
+          args:
+            - enrichment_sidecar
+          env:
+            - name: ENRICHMENT_TOR_FEED_URL
+              value: 'https://check.torproject.org/exit-addresses'
+            - name: ENRICHMENT_ALIEN_VAULT_FEED_URL
+              value: 'https://reputation.alienvault.com/reputation.generic'
+            - name: ENRICHMENT_FILEPATH
+              value: /enrichment-cache-files/
+            - name: ENRICHMENT_DELAY_SECONDS
+              value: '600'
+            - name: PYTHONUNBUFFERED
+              value: '1'
+            - name: PYTHONIOENCODING
+              value: UTF-8
+          volumeMounts:
+            - name: enrichment-cache-files
+              mountPath: /enrichment-cache-files
+              readOnly: false
+            - name: tmp-dir
+              mountPath: /tmp
+          resources:
+            limits:
+              cpu: "500m"
+              memory: 500Mi
+            requests:
+              cpu: "150m"
+              memory: 100Mi
+      terminationGracePeriodSeconds: 60
+      volumes:
+        - name: logstash-data
+          emptyDir: {}
+        - name: tmp-dir
+          emptyDir: {}
+        - name: logstash-config
+          emptyDir: {}
+        - name: logstash-logs
+          emptyDir: {}
+        - name: logstash-pipelines
+          configMap:
+            name: logstash-pipelines
+            items:
+              - key: pipelines.yml
+                path: pipelines.yml
+        - name: logstash-pipeline-customer
+          configMap:
+            name: logstash-pipeline-customer      
+        - name: enrichment-cache
+          configMap:
+            name: enrichment-cache
+        - name: enrichment-cache-files
+          emptyDir: {}
+        - name: os-notifications-channels
+          configMap:
+            name: os-notifications-channels
+        - name: os-dashboards-pd
+          configMap:
+            name: os-dashboards-pd
+        - name: os-dashboards-pf
+          configMap:
+            name: os-dashboards-pf
+        - name: os-dashboards-pf-threat
+          configMap:
+            name: os-dashboards-pf-threat
+        - name: os-dashboards-pa
+          configMap:
+            name: os-dashboards-pa
+        - name: os-dashboards-pa-was
+          configMap:
+            name: os-dashboards-pa-was
+  serviceName: logstash-elastic
+  volumeClaimTemplates:
+    - metadata:
+        name: logstash-gp3
+        annotations:
+          volume.autoscaler.kubernetes.io/scale-above-percent: "85"
+          volume.autoscaler.kubernetes.io/scale-up-percent: "25"
+        labels:
+          app: logstash-elastic
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: logstash-gp3
+        resources:
+          requests:
+            storage: 20Gi
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: logstash-elastic
+  labels:
+    app: logstash-elastic
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/scheme: "http"
+    prometheus.io/path: "/metrics"
+    prometheus.io/port: "9198"
+    newrelic.io/scrape: "true"
+spec:
+  selector:
+    app: logstash-elastic
+  ports:
+    - port: 9600
+      name: rest
+    - port: 8080
+      name: http-main-input
+    - port: 9198
+      name: metrics
+    - port: 8082
+      name: http-cw-input
+    - port: 8084
+      name: http-customer-input
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: logstash-elastic
+  labels:
+    app: logstash-elastic
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: logstash-elastic
+  labels:
+    app: logstash-elastic
+rules:
+- apiGroups:
+  - ""
+  - "batch"
+  resources:
+  - pods
+  - namespaces
+  - jobs
+  verbs:
+  - get
+  - list
+  - watch
+  
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: logstash-elastic
+roleRef:
+  kind: ClusterRole
+  name: logstash-elastic
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: ServiceAccount
+  name: logstash-elastic
