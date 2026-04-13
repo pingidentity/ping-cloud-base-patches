@@ -9,6 +9,11 @@ configMapGenerator:
   name: fluent-bit-config
   files:
   - configs/fluent-bit.conf
+  literals:
+  - log.level=error
+  - read.head=True
+  - read.tail=Off
+  - newrelic_cluster_name=cluster_name
 - behavior: replace
   name: fluent-bit-pipeline-core
   files:
