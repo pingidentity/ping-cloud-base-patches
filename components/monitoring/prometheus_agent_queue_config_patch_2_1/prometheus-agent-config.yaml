@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: prometheus-agent-config
+  name: prometheus-agent
   namespace: prometheus
   annotations:
     argocd.argoproj.io/sync-options: Replace=true
