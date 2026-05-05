@@ -22,7 +22,7 @@ data:
         max_shards: 30
         min_shards: 1
         capacity: 2500
-        max_samples_per_send: 1000
+        max_samples_per_send: 500
     storage:
       tsdb:
         out_of_order_time_window: 1d
