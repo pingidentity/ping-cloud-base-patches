@@ -19,10 +19,10 @@ data:
     remote_write:
     - url: http://prometheus-headless:9090/api/v1/write
       queue_config:
-        max_shards: 30
-        min_shards: 5
+        max_shards: 25
+        min_shards: 20
         capacity: 2500
-        max_samples_per_send: 500    
+        max_samples_per_send: 1000
     storage:
       tsdb:
         out_of_order_time_window: 1d
