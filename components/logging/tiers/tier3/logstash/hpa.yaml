@@ -3,13 +3,95 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: logstash-elastic
 spec:
-  minReplicas: 3
+  behavior:
+    scaleDown:
+      policies:
+        - periodSeconds: 30
+          type: Percent
+          value: 25
+      selectPolicy: Max
+      stabilizationWindowSeconds: 300
+    scaleUp:
+      policies:
+        - periodSeconds: 15
+          type: Percent
+          value: 50
+      selectPolicy: Max
+      stabilizationWindowSeconds: 30
   maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
+    - type: Pods
+      pods:
+        metric:
+          name: logstash_queue_utilization_percent
+        target:
+          type: AverageValue
+          averageValue: "20"
+    # Rate of Events coming to Logstash
+    - type: Pods
+      pods:
+        metric:
+          name: logstash_events_in_rate
+        target:
+          type: AverageValue
+          averageValue: "1500m"
+  minReplicas: 3
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: logstash-elastic
+
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: logstash-elastic-s3
 spec:
-  minReplicas: 3
+  behavior:
+    scaleDown:
+      policies:
+        - periodSeconds: 30
+          type: Percent
+          value: 25
+      selectPolicy: Max
+      stabilizationWindowSeconds: 300
+    scaleUp:
+      policies:
+        - periodSeconds: 15
+          type: Percent
+          value: 50
+      selectPolicy: Max
+      stabilizationWindowSeconds: 30
   maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
+    - type: Pods
+      pods:
+        metric:
+          name: logstash_queue_utilization_percent
+        target:
+          type: AverageValue
+          averageValue: "20"
+    - type: Pods
+      pods:
+        metric:
+          name: logstash_events_in_rate
+        target:
+          type: AverageValue
+          averageValue: "1500m"
+  minReplicas: 3
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: logstash-elastic-s3
