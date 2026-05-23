@@ -258,7 +258,7 @@ spec:
               # Point Java/JRuby to a sub-folder inside our writable volume
               # This bypasses the world-writable /tmp logstash warning entirely
               value: >-
-                -Xms3700m -Xmx3700m -XX:MaxDirectMemorySize=1g
+                -Xms5g -Xmx5g -XX:MaxDirectMemorySize=1g
                 -Djava.io.tmpdir=/usr/share/logstash/data/tmp 
                 -Dlogstash.geoip.database.path=/usr/share/logstash/data/plugins/filters/geoip
             - name: XPACK_MONITORING_ENABLED

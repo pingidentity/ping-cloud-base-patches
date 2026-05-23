@@ -258,7 +258,7 @@ spec:
               # Point Java/JRuby to a sub-folder inside our writable volume
               # This bypasses the world-writable /tmp logstash warning entirely
               value: >-
-                -Xms9000m -Xmx9000m -XX:MaxDirectMemorySize=2g
+                -Xms9g -Xmx9g -XX:MaxDirectMemorySize=2g
                 -Djava.io.tmpdir=/usr/share/logstash/data/tmp 
                 -Dlogstash.geoip.database.path=/usr/share/logstash/data/plugins/filters/geoip
             - name: XPACK_MONITORING_ENABLED
@@ -317,11 +317,11 @@ spec:
             # Ensures dedicated CPU & Mem reservation for Logstash to avoid
             # CPU throttling &noisy-neighbor interference
             limits:
-              cpu: "6"
-              memory: 16Gi
+              cpu: "4"
+              memory: 14Gi
             requests:
-              cpu: "6"
-              memory: 16Gi
+              cpu: "4"
+              memory: 14Gi
           ports:
             - containerPort: 9600
               name: rest
