@@ -157,10 +157,10 @@ spec:
       resources:
         requests:
           cpu: "8"
-          memory: 24Gi
+          memory: 20Gi
         limits:
           cpu: "8"
-          memory: 24Gi
+          memory: 20Gi
       roles:
         - "cluster_manager"
         - "data"

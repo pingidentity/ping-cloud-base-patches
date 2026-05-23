@@ -5,6 +5,7 @@ metadata:
 spec:
   template:
     spec:
+      terminationGracePeriodSeconds: 60
       containers:
         - name: fluent-bit
           resources:
