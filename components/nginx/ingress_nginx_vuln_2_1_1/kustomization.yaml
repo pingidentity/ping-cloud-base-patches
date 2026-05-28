@@ -21,7 +21,7 @@ patches:
       metadata:
         name: nginx-ingress-controller
       spec:
-        template
+        template:
           spec:
             containers:
               - name: nginx-ingress-controller
@@ -36,7 +36,7 @@ patches:
       metadata:
         name: nginx-ingress-controller
       spec:
-        template
+        template:
           spec:
             containers:
               - name: nginx-ingress-controller
