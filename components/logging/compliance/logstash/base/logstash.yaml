@@ -1,0 +1,273 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: logstash-elasic-compliance
+  labels:
+    app: logstash-elasic-compliance
+spec:
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: logstash-elasic-compliance
+  template:
+    metadata:
+      labels:
+        app: logstash-elasic-compliance
+    spec:
+      securityContext:
+        fsGroup: 1000
+        runAsNonRoot: true
+      serviceAccountName: logstash-elasic-compliance
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - logstash-elasic-compliance
+              topologyKey: topology.kubernetes.io/zone
+      initContainers:
+      - name: seed-logstash
+        image: public.ecr.aws/r2h3l6e4/pingcloud-monitoring/logstash/dev:v2.3-release-branch-latest
+        command:
+        - sh
+        - -c
+        - |
+          cp -r /usr/share/logstash/config/* /mnt/config/
+          cp -r /usr/share/logstash/data/* /mnt/data/
+          cp -r /tmp/* /mnt/tmp/
+          mkdir -p /mnt/data/tmp /mnt/config/compliance-pipelines
+        volumeMounts:
+        - name: logstash-config
+          mountPath: /mnt/config
+        - name: logstash-data
+          mountPath: /mnt/data
+        - name: tmp-dir
+          mountPath: /mnt/tmp
+        securityContext:
+          runAsUser: 1000
+          runAsGroup: 1000
+          privileged: false
+      containers:
+      - name: exporter
+        args:
+        - --logstash.endpoint=http://localhost:9600
+        image: public.ecr.aws/r2h3l6e4/pingcloud-clustertools/prom/logstash-exporter:v0.0.1
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          allowPrivilegeEscalation: false
+          privileged: false
+          readOnlyRootFilesystem: true
+        ports:
+        - containerPort: 9198
+          name: metrics
+          protocol: TCP
+        resources:
+          limits:
+            cpu: "500m"
+            memory: 500Mi
+          requests:
+            cpu: "150m"
+            memory: 100Mi
+      - name: logstash
+        image: public.ecr.aws/r2h3l6e4/pingcloud-monitoring/logstash/dev:v2.3-release-branch-latest
+        imagePullPolicy: Always
+        command:
+        - /bin/sh
+        args:
+        - -c
+        - |
+          cat /usr/share/logstash/config/compliance-pipelines/*.yml > /usr/share/logstash/config/pipelines.yml
+          exec /usr/local/bin/docker-entrypoint
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          allowPrivilegeEscalation: false
+          privileged: false
+          readOnlyRootFilesystem: true
+        env:
+        - name: CONTAINER_NAME
+          value: logstash
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: CONFIG_RELOAD_AUTOMATIC
+          value: "false"
+        - name: LOG_FORMAT
+          value: json
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: cluster-info
+              key: log.level
+        - name: PIPELINE_ECS_COMPATIBILITY
+          value: disabled
+        - name: PIPELINE_ORDERED
+          value: "false"
+        - name: TMPDIR
+          value: /usr/share/logstash/data/tmp
+        - name: LS_JAVA_OPTS
+          value: >-
+            -Xms1g -Xmx1g -XX:MaxDirectMemorySize=512m
+            -Djava.io.tmpdir=/usr/share/logstash/data/tmp
+        - name: XPACK_MONITORING_ENABLED
+          value: "false"
+        - name: AWS_REGION
+          valueFrom:
+            configMapKeyRef:
+              name: cluster-info
+              key: logs.region
+        - name: CW_CLUSTER_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: cluster-info
+              key: cluster.name
+        envFrom:
+        - configMapRef:
+            name: elk-environment-variables
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: 9600
+          initialDelaySeconds: 300
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        readinessProbe:
+          failureThreshold: 10
+          httpGet:
+            path: /
+            port: 9600
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 3
+          timeoutSeconds: 5
+        startupProbe:
+          failureThreshold: 30
+          httpGet:
+            path: /
+            port: 9600
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: "1"
+            memory: 2Gi
+          requests:
+            cpu: "1"
+            memory: 2Gi
+        ports:
+        - containerPort: 9600
+          name: rest
+          protocol: TCP
+        volumeMounts:
+        - name: logstash-data
+          mountPath: /usr/share/logstash/data
+        - name: tmp-dir
+          mountPath: /tmp
+        - name: logstash-config
+          mountPath: /usr/share/logstash/config
+        - name: logstash-logs
+          mountPath: /usr/share/logstash/logs
+        - name: logstash-elastic-compliance
+          mountPath: /data/pq
+          readOnly: false
+      terminationGracePeriodSeconds: 60
+      volumes:
+      - name: logstash-data
+        emptyDir: {}
+      - name: tmp-dir
+        emptyDir: {}
+      - name: logstash-config
+        emptyDir: {}
+      - name: logstash-logs
+        emptyDir: {}
+  serviceName: logstash-elasic-compliance
+  volumeClaimTemplates:
+  - metadata:
+      name: logstash-elastic-compliance
+      annotations:
+        volume.autoscaler.kubernetes.io/scale-above-percent: "85"
+        volume.autoscaler.kubernetes.io/scale-up-percent: "25"
+      labels:
+        app: logstash-elasic-compliance
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      storageClassName: logstash-elastic-compliance
+      resources:
+        requests:
+          storage: 10Gi
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: logstash-elasic-compliance
+  labels:
+    app: logstash-elasic-compliance
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/scheme: "http"
+    prometheus.io/path: "/metrics"
+    prometheus.io/port: "9198"
+    newrelic.io/scrape: "true"
+spec:
+  selector:
+    app: logstash-elasic-compliance
+  ports:
+  - port: 9600
+    name: rest
+  - port: 9198
+    name: metrics
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: logstash-elasic-compliance
+  labels:
+    app: logstash-elasic-compliance
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: logstash-elasic-compliance
+  labels:
+    app: logstash-elasic-compliance
+rules:
+- apiGroups:
+  - ""
+  - batch
+  resources:
+  - pods
+  - namespaces
+  - jobs
+  verbs:
+  - get
+  - list
+  - watch
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: logstash-elasic-compliance
+roleRef:
+  kind: ClusterRole
+  name: logstash-elasic-compliance
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: ServiceAccount
+  name: logstash-elasic-compliance

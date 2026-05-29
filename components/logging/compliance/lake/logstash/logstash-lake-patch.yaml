@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: logstash-elasic-compliance
+spec:
+  template:
+    spec:
+      containers:
+      - name: logstash
+        readinessProbe:
+          httpGet:
+            port: 8085
+        startupProbe:
+          httpGet:
+            port: 8085
+        ports:
+        - containerPort: 8085
+          name: http-datalake-input
+          protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: logstash-elasic-compliance
+spec:
+  ports:
+  - port: 9600
+    name: rest
+  - port: 9198
+    name: metrics
+  - port: 8085
+    name: http-datalake-input

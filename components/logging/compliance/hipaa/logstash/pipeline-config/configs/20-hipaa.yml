@@ -1,0 +1,6 @@
+- pipeline.id: hipaa
+  path.config: "/etc/logstash/conf.d/hipaa.conf"
+  queue.type: persisted
+  queue.max_bytes: 500mb
+  queue.checkpoint.writes: 1000
+  path.queue: /data/pq/hipaa
