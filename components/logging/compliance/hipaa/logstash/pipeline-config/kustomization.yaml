@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+patches:
+- path: mounts-patch.yaml
+
+configMapGenerator:
+- name: logstash-pipeline-hipaa-compliance
+  files:
+  - configs/hipaa.conf
+- name: logstash-pipeline-fragment-hipaa-compliance
+  files:
+  - configs/20-hipaa.yml

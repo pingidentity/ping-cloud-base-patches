@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+patches:
+- path: fluentbit-lake-patch.yaml
+
+configMapGenerator:
+- name: fluent-bit-pipeline-lake-inputs
+  files:
+  - configs/pipeline-lake-inputs.conf
+- name: fluent-bit-pipeline-lake-outputs
+  files:
+  - configs/pipeline-lake-outputs.conf

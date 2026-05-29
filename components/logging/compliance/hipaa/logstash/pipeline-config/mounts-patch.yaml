@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: logstash-elasic-compliance
+spec:
+  template:
+    spec:
+      containers:
+      - name: logstash
+        volumeMounts:
+        - name: logstash-pipeline-hipaa-compliance
+          mountPath: /etc/logstash/conf.d/hipaa.conf
+          subPath: hipaa.conf
+          readOnly: true
+        - name: logstash-pipeline-fragment-hipaa-compliance
+          mountPath: /usr/share/logstash/config/compliance-pipelines/20-hipaa.yml
+          subPath: 20-hipaa.yml
+          readOnly: true
+      volumes:
+      - name: logstash-pipeline-hipaa-compliance
+        configMap:
+          name: logstash-pipeline-hipaa-compliance
+      - name: logstash-pipeline-fragment-hipaa-compliance
+        configMap:
+          name: logstash-pipeline-fragment-hipaa-compliance

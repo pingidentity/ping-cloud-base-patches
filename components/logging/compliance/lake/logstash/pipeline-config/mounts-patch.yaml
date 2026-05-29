@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: logstash-elasic-compliance
+spec:
+  template:
+    spec:
+      containers:
+      - name: logstash
+        volumeMounts:
+        - name: logstash-pipeline-datalake-compliance
+          mountPath: /etc/logstash/conf.d/datalake.conf
+          subPath: datalake.conf
+          readOnly: true
+        - name: logstash-pipeline-fragment-datalake-compliance
+          mountPath: /usr/share/logstash/config/compliance-pipelines/10-datalake.yml
+          subPath: 10-datalake.yml
+          readOnly: true
+      volumes:
+      - name: logstash-pipeline-datalake-compliance
+        configMap:
+          name: logstash-pipeline-datalake-compliance
+      - name: logstash-pipeline-fragment-datalake-compliance
+        configMap:
+          name: logstash-pipeline-fragment-datalake-compliance
