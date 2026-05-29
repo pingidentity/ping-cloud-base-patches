@@ -1,0 +1,6 @@
+- pipeline.id: datalake
+  path.config: "/etc/logstash/conf.d/datalake.conf"
+  queue.type: persisted
+  queue.max_bytes: 1500mb
+  queue.checkpoint.writes: 1000
+  path.queue: /data/pq/datalake

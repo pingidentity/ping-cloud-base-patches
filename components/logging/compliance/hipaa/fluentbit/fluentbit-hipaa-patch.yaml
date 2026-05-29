@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluent-bit
+spec:
+  template:
+    spec:
+      containers:
+      - name: fluent-bit
+        volumeMounts:
+        - name: fluent-bit-pipeline-hipaa-inputs
+          mountPath: /fluent-bit/etc/pipeline-hipaa-inputs.conf
+          subPath: pipeline-hipaa-inputs.conf
+        - name: fluent-bit-pipeline-hipaa-outputs
+          mountPath: /fluent-bit/etc/pipeline-hipaa-outputs.conf
+          subPath: pipeline-hipaa-outputs.conf
+      volumes:
+      - name: fluent-bit-pipeline-hipaa-inputs
+        configMap:
+          name: fluent-bit-pipeline-hipaa-inputs
+      - name: fluent-bit-pipeline-hipaa-outputs
+        configMap:
+          name: fluent-bit-pipeline-hipaa-outputs
