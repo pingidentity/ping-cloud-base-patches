@@ -25,7 +25,7 @@ patches:
           spec:
             containers:
               - name: nginx-ingress-controller
-                image: 705370621539.dkr.ecr.us-west-2.amazonaws.com/pingcloud-services/sigsci-nginx-ingress-controller:PDO-11773
+                image: public.ecr.aws/r2h3l6e4/pingcloud-services/sigsci-nginx-ingress-controller:v2.1.1-RC1
   - target:
       kind: Deployment
       name: nginx-ingress-controller
@@ -40,4 +40,4 @@ patches:
           spec:
             containers:
               - name: nginx-ingress-controller
-                image: 705370621539.dkr.ecr.us-west-2.amazonaws.com/pingcloud-services/sigsci-nginx-ingress-controller:PDO-11773
+                image: public.ecr.aws/r2h3l6e4/pingcloud-services/sigsci-nginx-ingress-controller:v2.1.1-RC1
