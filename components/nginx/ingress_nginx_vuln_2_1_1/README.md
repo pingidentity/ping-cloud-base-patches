@@ -23,6 +23,8 @@ components:
   - github.com/pingidentity/ping-cloud-base-patches//components/nginx/ingress_nginx_vuln_2_1_1?ref=pdo-11779
 ```
 
+4. Sync ArgoCD in all regions.
+
 ## What it patches
 
 | Resource | Namespace | Change |
