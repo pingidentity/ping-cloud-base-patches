@@ -7,7 +7,7 @@ Addresses CVE K000161019 for customers on P1AS `v2.1.1` by:
 
 ## Usage
 
-1. Open the `base/kustomization.yaml` file for your environment.
+1. Open the `k8s-configs/base/kustomization.yaml` file for your environment.
 2. Locate (or add) the `components:` section.
 3. Add the following:
 
