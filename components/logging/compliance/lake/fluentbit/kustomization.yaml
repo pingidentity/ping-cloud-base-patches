@@ -6,8 +6,10 @@ patches:
 
 configMapGenerator:
 - name: fluent-bit-pipeline-lake-inputs
+  namespace: elastic-stack-logging
   files:
   - configs/pipeline-lake-inputs.conf
 - name: fluent-bit-pipeline-lake-outputs
+  namespace: elastic-stack-logging
   files:
   - configs/pipeline-lake-outputs.conf
