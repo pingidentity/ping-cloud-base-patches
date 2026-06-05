@@ -6,8 +6,10 @@ patches:
 
 configMapGenerator:
 - name: fluent-bit-pipeline-hipaa-inputs
+  namespace: elastic-stack-logging
   files:
   - configs/pipeline-hipaa-inputs.conf
 - name: fluent-bit-pipeline-hipaa-outputs
+  namespace: elastic-stack-logging
   files:
   - configs/pipeline-hipaa-outputs.conf

@@ -6,8 +6,10 @@ patches:
 
 configMapGenerator:
 - name: logstash-pipeline-hipaa-compliance
+  namespace: elastic-stack-logging
   files:
   - configs/hipaa.conf
 - name: logstash-pipeline-fragment-hipaa-compliance
+  namespace: elastic-stack-logging
   files:
   - configs/20-hipaa.yml
