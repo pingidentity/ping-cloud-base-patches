@@ -6,8 +6,10 @@ patches:
 
 configMapGenerator:
 - name: logstash-pipeline-datalake-compliance
+  namespace: elastic-stack-logging
   files:
   - configs/datalake.conf
 - name: logstash-pipeline-fragment-datalake-compliance
+  namespace: elastic-stack-logging
   files:
   - configs/10-datalake.yml
