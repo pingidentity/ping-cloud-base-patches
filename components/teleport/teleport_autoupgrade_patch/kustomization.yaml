@@ -1,0 +1,35 @@
+# AI Generated
+# Patch: teleport_autoupgrade_patch
+#
+# Purpose: Prevents ArgoCD from rolling back Teleport's container image to the
+# Helm-pinned version after Teleport's auto-updater changes it in-cluster.
+# Adds an ignoreDifferences entry on the ping-cloud-all-cdes-per-app ApplicationSet
+# so ArgoCD tolerates the live image diverging from the desired state.
+#
+# Jira: PDO-9915
+# Permanent fix PCB MR: ping-cloud-private-tenant/ping-cloud-base!3007
+# Targets: P1AS v2.0+ (when Teleport was introduced)
+#
+# Usage - add to a CSR's k8s-configs/base/kustomization.yaml:
+#   components:
+#     - github.com/pingidentity/ping-cloud-base-patches//components/teleport/teleport_autoupgrade_patch
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+patches:
+  - target:
+      group: argoproj.io
+      version: v1alpha1
+      kind: ApplicationSet
+      name: ping-cloud-all-cdes-per-app
+      namespace: argocd
+    patch: |
+      - op: add
+        path: /spec/template/spec/ignoreDifferences/-
+        value:
+          group: apps
+          kind: StatefulSet
+          name: teleport
+          namespace: teleport
+          jqPathExpressions:
+            - .spec.template.spec.containers[].image
