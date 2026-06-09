@@ -16,7 +16,7 @@ spec:
             port: 8086
         ports:
         - containerPort: 8086
-          name: http-hipaa-input
+          name: http-hipaa-in
           protocol: TCP
 ---
 apiVersion: v1
@@ -31,4 +31,4 @@ spec:
   - port: 9198
     name: metrics
   - port: 8086
-    name: http-hipaa-input
+    name: http-hipaa-in

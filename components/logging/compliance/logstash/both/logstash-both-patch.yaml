@@ -28,10 +28,10 @@ spec:
             memory: 4Gi
         ports:
         - containerPort: 8085
-          name: http-datalake-input
+          name: http-lake-in
           protocol: TCP
         - containerPort: 8086
-          name: http-hipaa-input
+          name: http-hipaa-in
           protocol: TCP
 ---
 apiVersion: v1
@@ -46,6 +46,6 @@ spec:
   - port: 9198
     name: metrics
   - port: 8085
-    name: http-datalake-input
+    name: http-lake-in
   - port: 8086
-    name: http-hipaa-input
+    name: http-hipaa-in
