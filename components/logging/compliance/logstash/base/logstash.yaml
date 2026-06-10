@@ -2,26 +2,26 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: logstash-elasic-compliance
+  name: logstash-elastic-compliance
   namespace: elastic-stack-logging
   labels:
-    app: logstash-elasic-compliance
+    app: logstash-elastic-compliance
 spec:
   podManagementPolicy: Parallel
   updateStrategy:
     type: RollingUpdate
   selector:
     matchLabels:
-      app: logstash-elasic-compliance
+      app: logstash-elastic-compliance
   template:
     metadata:
       labels:
-        app: logstash-elasic-compliance
+        app: logstash-elastic-compliance
     spec:
       securityContext:
         fsGroup: 1000
         runAsNonRoot: true
-      serviceAccountName: logstash-elasic-compliance
+      serviceAccountName: logstash-elastic-compliance
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -32,7 +32,7 @@ spec:
                 - key: app
                   operator: In
                   values:
-                  - logstash-elasic-compliance
+                  - logstash-elastic-compliance
               topologyKey: topology.kubernetes.io/zone
       initContainers:
       - name: discovery-service
@@ -240,7 +240,7 @@ spec:
         configMap:
           name: discovery-service
           defaultMode: 0555
-  serviceName: logstash-elasic-compliance
+  serviceName: logstash-elastic-compliance
   volumeClaimTemplates:
   - metadata:
       name: logstash-elastic-compliance
@@ -248,7 +248,7 @@ spec:
         volume.autoscaler.kubernetes.io/scale-above-percent: "85"
         volume.autoscaler.kubernetes.io/scale-up-percent: "25"
       labels:
-        app: logstash-elasic-compliance
+        app: logstash-elastic-compliance
     spec:
       accessModes:
       - ReadWriteOnce
@@ -260,10 +260,10 @@ spec:
 kind: Service
 apiVersion: v1
 metadata:
-  name: logstash-elasic-compliance
+  name: logstash-elastic-compliance
   namespace: elastic-stack-logging
   labels:
-    app: logstash-elasic-compliance
+    app: logstash-elastic-compliance
   annotations:
     prometheus.io/scrape: "true"
     prometheus.io/scheme: "http"
@@ -272,7 +272,7 @@ metadata:
     newrelic.io/scrape: "true"
 spec:
   selector:
-    app: logstash-elasic-compliance
+    app: logstash-elastic-compliance
   ports:
   - port: 9600
     name: rest
@@ -282,9 +282,9 @@ spec:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: logstash-elasic-compliance
+  name: logstash-elastic-compliance
   labels:
-    app: logstash-elasic-compliance
+    app: logstash-elastic-compliance
 rules:
 - apiGroups:
   - ""
@@ -301,12 +301,12 @@ rules:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: logstash-elasic-compliance
+  name: logstash-elastic-compliance
 roleRef:
   kind: ClusterRole
-  name: logstash-elasic-compliance
+  name: logstash-elastic-compliance
   apiGroup: rbac.authorization.k8s.io
 subjects:
 - kind: ServiceAccount
-  name: logstash-elasic-compliance
+  name: logstash-elastic-compliance
   namespace: elastic-stack-logging
