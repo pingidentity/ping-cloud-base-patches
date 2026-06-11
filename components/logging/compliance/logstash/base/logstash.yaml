@@ -35,38 +35,6 @@ spec:
                   - logstash-elastic-compliance
               topologyKey: topology.kubernetes.io/zone
       initContainers:
-      - name: discovery-service
-        image: public.ecr.aws/r2h3l6e4/pingcloud-clustertools/amazon/aws-cli:2.15.36
-        imagePullPolicy: IfNotPresent
-        command:
-        - /get_ssm_env_vars.sh
-        env:
-        - name: REGION
-          valueFrom:
-            configMapKeyRef:
-              name: cluster-info
-              key: logs.region
-        - name: TELEMETRY_BUCKET_NAME
-          valueFrom:
-            configMapKeyRef:
-              name: elk-environment-variables
-              key: TELEMETRY_BUCKET_NAME
-        volumeMounts:
-        - name: ds-env-vars
-          mountPath: /config
-        - name: discovery-service
-          mountPath: /get_ssm_env_vars.sh
-          subPath: get_ssm_env_vars.sh
-        - name: aws-config-dir
-          mountPath: /.aws
-          subPath: discovery-service-aws-config
-        securityContext:
-          runAsNonRoot: true
-          runAsUser: 65534
-          runAsGroup: 65534
-          allowPrivilegeEscalation: false
-          privileged: false
-          readOnlyRootFilesystem: true
       - name: seed-logstash
         image: public.ecr.aws/r2h3l6e4/pingcloud-monitoring/logstash/dev:v2.3-release-branch-latest
         command:
@@ -120,7 +88,6 @@ spec:
         args:
         - -c
         - |
-          [ -f /config/ds_env_vars ] && . /config/ds_env_vars
           cat /usr/share/logstash/config/compliance-pipelines/*.yml > /usr/share/logstash/config/pipelines.yml
           exec /usr/local/bin/docker-entrypoint
         securityContext:
@@ -168,6 +135,11 @@ spec:
             configMapKeyRef:
               name: cluster-info
               key: cluster.name
+        - name: TELEMETRY_BUCKET_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: s3-telemetry-bucket
+              key: bucketName
         envFrom:
         - configMapRef:
             name: elk-environment-variables
@@ -220,8 +192,6 @@ spec:
         - name: logstash-elastic-compliance
           mountPath: /data/pq
           readOnly: false
-        - name: ds-env-vars
-          mountPath: /config
       terminationGracePeriodSeconds: 60
       volumes:
       - name: logstash-data
@@ -232,14 +202,6 @@ spec:
         emptyDir: {}
       - name: logstash-logs
         emptyDir: {}
-      - name: ds-env-vars
-        emptyDir: {}
-      - name: aws-config-dir
-        emptyDir: {}
-      - name: discovery-service
-        configMap:
-          name: discovery-service
-          defaultMode: 0555
   serviceName: logstash-elastic-compliance
   volumeClaimTemplates:
   - metadata:
