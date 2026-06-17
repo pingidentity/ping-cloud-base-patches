@@ -3,7 +3,7 @@
 
 Opt-in Kustomize [Component](https://kubectl.docs.kubernetes.io/references/kustomize/kustomization/components/) patches for PingOne Advanced Services (P1AS). Patches are organized by subsystem under `components/` and named with a version suffix matching their target P1AS release.
 
-To apply a patch, add its path to the `components:` list in a CSR `kustomization.yaml`.
+To apply a patch, add its path to the `components:` list in a cluster-state-repo (CSR) `kustomization.yaml`.
 
 See the Confluence [Component Patch Homepage](https://pingidentity.atlassian.net/wiki/spaces/PDA/pages/1123516717/Component+Patch+Homepage) for full usage details.
 
