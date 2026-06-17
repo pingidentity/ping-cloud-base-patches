@@ -1,4 +1,3 @@
-<!-- AI Generated -->
 # p1as-eng-base-patches
 
 Opt-in Kustomize [Component](https://kubectl.docs.kubernetes.io/references/kustomize/kustomization/components/) patches for PingOne Advanced Services (P1AS). Patches are organized by subsystem under `components/` and named with a version suffix matching their target P1AS release.
