@@ -1,9 +1,9 @@
 # AI Generated
 name: Mirror to pingidentity/ping-cloud-base-patches
 
+# Run the workflow on any push
 on:
-  push:
-    branches: ['**']
+  push
 
 jobs:
   mirror:
@@ -17,8 +17,9 @@ jobs:
         env:
           # Refer to the ref_name this way due to injection concerns - https://www.kenmuse.com/blog/the-hidden-danger-in-git-ref-names/
           REF_NAME: ${{ github.ref_name }}
+          TARGET_REPO_SSH_URL: "git@github.com:pingidentity/ping-cloud-base-patches.git"
         run: |
-          echo "Adding SSH Key... from repo secret 'MIRROR_DEPLOY_KEY'"
+          echo "Adding SSH Key from repo secret 'MIRROR_DEPLOY_KEY'..."
           mkdir -p ~/.ssh
           echo "${{ secrets.MIRROR_DEPLOY_KEY }}" > ~/.ssh/mirror_deploy_key
           chmod 600 ~/.ssh/mirror_deploy_key
@@ -26,6 +27,6 @@ jobs:
           echo "Adding github.com to known hosts..."
           ssh-keyscan github.com >> ~/.ssh/known_hosts
 
-          echo "Mirroring $REF_NAME to the ping-cloud-base-patches repo in Public Github..."
+          echo "Mirroring ${REF_NAME} to ${TARGET_REPO_SSH_URL}..."
           GIT_SSH_COMMAND="ssh -i ~/.ssh/mirror_deploy_key" \
-            git push git@github.com:pingidentity/ping-cloud-base-patches.git HEAD:refs/heads/"$REF_NAME"
+            git push "${TARGET_REPO_SSH_URL}" HEAD:refs/heads/"$REF_NAME"
