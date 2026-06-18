@@ -9,7 +9,7 @@ jobs:
   mirror:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -19,14 +19,16 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
           TARGET_REPO_SSH_URL: "git@github.com:pingidentity/ping-cloud-base-patches.git"
         run: |
+          set -euo pipefail
+
           echo "Adding SSH Key from repo secret 'MIRROR_DEPLOY_KEY'..."
           mkdir -p ~/.ssh
-          echo "${{ secrets.MIRROR_DEPLOY_KEY }}" > ~/.ssh/mirror_deploy_key
-          chmod 600 ~/.ssh/mirror_deploy_key
+          echo "${{ secrets.MIRROR_DEPLOY_SSH_KEY }}" > ~/.ssh/mirror_deploy_ssh_key
+          chmod 600 ~/.ssh/mirror_deploy_ssh_key
 
           echo "Adding github.com to known hosts..."
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          ssh-keyscan -H github.com >> ~/.ssh/known_hosts
 
           echo "Mirroring ${REF_NAME} to ${TARGET_REPO_SSH_URL}..."
-          GIT_SSH_COMMAND="ssh -i ~/.ssh/mirror_deploy_key" \
+          GIT_SSH_COMMAND="ssh -i ~/.ssh/mirror_deploy_ssh_key" \
             git push "${TARGET_REPO_SSH_URL}" HEAD:refs/heads/"$REF_NAME"
