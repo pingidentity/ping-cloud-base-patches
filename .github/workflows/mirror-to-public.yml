@@ -5,7 +5,7 @@ on: push
 
 jobs:
   mirror-to-ping-cloud-base-patches:
-    uses: ping-internal/p1as-eng-tools/.github/workflows/mirror-repository.yml@PDO-11873-gh-migration
+    uses: ping-internal/p1as-eng-tools/.github/workflows/mirror-repository.yml@master
     with:
       github-ref: ${{ github.ref}}
       target-repo-ssh-url: "git@github.com:pingidentity/ping-cloud-base-patches.git"
