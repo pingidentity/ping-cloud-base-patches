@@ -13,3 +13,4 @@ jobs:
       mirror-deploy-ssh-key: ${{ secrets.MIRROR_DEPLOY_SSH_KEY }}
     permissions:
       contents: read
+      issues: write
