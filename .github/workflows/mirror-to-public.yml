@@ -1,4 +1,4 @@
-# AI Generated
+# Mirrors this private repository to the public pingidentity/ping-cloud-base-patches repository.
 name: Mirror to pingidentity/ping-cloud-base-patches
 
 on: push
