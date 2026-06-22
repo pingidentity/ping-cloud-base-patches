@@ -1,0 +1,16 @@
+# Mirrors this private repository to the public pingidentity/ping-cloud-base-patches repository.
+name: Mirror to pingidentity/ping-cloud-base-patches
+
+on: push
+
+jobs:
+  mirror-to-ping-cloud-base-patches:
+    uses: ping-internal/p1as-eng-tools/.github/workflows/mirror-repository.yml@master
+    with:
+      github-ref: ${{ github.ref}}
+      target-repo-ssh-url: "git@github.com:pingidentity/ping-cloud-base-patches.git"
+    secrets:
+      mirror-deploy-ssh-key: ${{ secrets.MIRROR_DEPLOY_SSH_KEY }}
+    permissions:
+      contents: read
+      issues: write
