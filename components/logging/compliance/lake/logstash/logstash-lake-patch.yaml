@@ -1,7 +1,8 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: logstash-elasic-compliance
+  name: logstash-elastic-compliance
+  namespace: elastic-stack-logging
 spec:
   template:
     spec:
@@ -15,13 +16,14 @@ spec:
             port: 8085
         ports:
         - containerPort: 8085
-          name: http-datalake-input
+          name: http-lake-in
           protocol: TCP
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: logstash-elasic-compliance
+  name: logstash-elastic-compliance
+  namespace: elastic-stack-logging
 spec:
   ports:
   - port: 9600
@@ -29,4 +31,4 @@ spec:
   - port: 9198
     name: metrics
   - port: 8085
-    name: http-datalake-input
+    name: http-lake-in

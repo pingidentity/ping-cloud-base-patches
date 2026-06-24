@@ -1,7 +1,8 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: logstash-elasic-compliance
+  name: logstash-elastic-compliance
+  namespace: elastic-stack-logging
 spec:
   template:
     spec:
