@@ -8,12 +8,6 @@ spec:
     spec:
       containers:
       - name: logstash
-        env:
-        - name: ENV
-          valueFrom:
-            configMapKeyRef:
-              name: p1as-bootstrap
-              key: ENV
         readinessProbe:
           httpGet:
             port: 8085
