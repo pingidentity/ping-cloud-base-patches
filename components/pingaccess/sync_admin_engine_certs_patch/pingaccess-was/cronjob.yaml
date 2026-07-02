@@ -14,6 +14,9 @@ spec:
     spec:
       backoffLimit: 0             # Don't retry failed jobs
       template:
+        metadata:
+          annotations:
+            karpenter.sh/do-not-disrupt: "true"
         spec:
           serviceAccountName: pingaccess-was-cert-maintainer
           restartPolicy: Never
