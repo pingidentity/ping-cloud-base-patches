@@ -17,7 +17,7 @@ data:
       queue.type: persisted
       queue.max_bytes: 10gb
       queue.drain: true
-      queue.checkpoint.writes: 1024
+      queue.checkpoint.writes: 512
       dead_letter_queue.enable: false
 ---
 apiVersion: apps/v1

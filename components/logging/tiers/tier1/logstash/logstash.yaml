@@ -19,6 +19,7 @@ data:
       queue.drain: true
       queue.checkpoint.writes: 128
       dead_letter_queue.enable: true
+      dead_letter_queue.max_bytes: 5gb
 
     - pipeline.id: customer
       path.config: "/usr/share/logstash/pipeline/customer"
