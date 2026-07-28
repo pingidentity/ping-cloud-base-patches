@@ -53,6 +53,7 @@ patches:
         namespace: ingress-nginx-private
       data:
         annotations-risk-level: "Critical"
+        allow-snippet-annotations: "true"
   - target:
       kind: ConfigMap
       name: nginx-configuration
@@ -65,3 +66,4 @@ patches:
         namespace: ingress-nginx-public
       data:
         annotations-risk-level: "Critical"
+        allow-snippet-annotations: "true"
