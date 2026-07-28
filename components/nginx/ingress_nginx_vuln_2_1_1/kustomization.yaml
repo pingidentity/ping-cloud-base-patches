@@ -41,3 +41,27 @@ patches:
             containers:
               - name: nginx-ingress-controller
                 image: public.ecr.aws/r2h3l6e4/pingcloud-services/sigsci-nginx-ingress-controller:v2.1.1
+  - target:
+      kind: ConfigMap
+      name: nginx-configuration
+      namespace: ingress-nginx-private
+    patch: |-
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: nginx-configuration
+        namespace: ingress-nginx-private
+      data:
+        annotations-risk-level: "Critical"
+  - target:
+      kind: ConfigMap
+      name: nginx-configuration
+      namespace: ingress-nginx-private
+    patch: |-
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: nginx-configuration
+        namespace: ingress-nginx-public
+      data:
+        annotations-risk-level: "Critical"
