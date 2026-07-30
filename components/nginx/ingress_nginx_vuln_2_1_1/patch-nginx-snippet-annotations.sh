@@ -12,6 +12,14 @@ if [[ ! -f "${CUSTOM_PATCHES}" ]]; then
   exit 1
 fi
 
+current_context=$(kubectl config current-context 2>/dev/null || true)
+if [[ -z "${current_context}" ]]; then
+  echo "ERROR: no kubectl context set. Run 'kubectl config use-context <name>' first." >&2
+  exit 1
+fi
+echo "Connected to context: ${current_context}"
+echo ""
+
 SNIPPET_ANNOTATIONS=(
   "nginx.ingress.kubernetes.io/configuration-snippet"
   "nginx.ingress.kubernetes.io/server-snippet"
