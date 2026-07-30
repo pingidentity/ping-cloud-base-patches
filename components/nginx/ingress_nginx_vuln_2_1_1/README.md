@@ -40,7 +40,7 @@ Newer ingress-nginx builds require both `allow-snippet-annotations: "true"` and 
 ### Prerequisites
 
 - Run from the root of the cluster-state-repo (the script derives `CSR_PATH` from its own location, so keep the script inside the CSR root).
-- `kubectl` context pointed at the target cluster.
+- You must be connected to the target cluster via Teleport (`tsh kube login <cluster>`) before running the script. The script queries the live cluster via `kubectl` and will exit early if no context is set. On start-up it prints the currently connected context — confirm it matches the intended environment before letting the script continue.
 - `jq` available on `PATH`.
 - `k8s-configs/base/custom-patches.yaml` must already exist.
 

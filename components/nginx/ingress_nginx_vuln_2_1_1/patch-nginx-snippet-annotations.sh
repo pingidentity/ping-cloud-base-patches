@@ -14,9 +14,16 @@ fi
 
 current_context=$(kubectl config current-context 2>/dev/null || true)
 if [[ -z "${current_context}" ]]; then
-  echo "ERROR: no kubectl context set. Run 'kubectl config use-context <name>' first." >&2
+  echo "ERROR: no kubectl context set. Run 'tsh kube login <cluster>' first." >&2
   exit 1
 fi
+
+if ! kubectl get namespaces --request-timeout=5s >/dev/null 2>&1; then
+  echo "ERROR: context '${current_context}' is set but the cluster is unreachable." >&2
+  echo "       Re-authenticate with Teleport: tsh kube login <cluster>" >&2
+  exit 1
+fi
+
 echo "Connected to context: ${current_context}"
 echo ""
 
