@@ -41,7 +41,7 @@ Newer ingress-nginx builds require both `allow-snippet-annotations: "true"` and 
 
 - Run from the root of the cluster-state-repo (the script derives `CSR_PATH` from its own location, so keep the script inside the CSR root).
 - You must be connected to the target cluster via Teleport (`tsh kube login <cluster>`) before running the script. The script queries the live cluster via `kubectl` and will exit early if no context is set. On start-up it prints the currently connected context — confirm it matches the intended environment before letting the script continue.
-- `jq` and `yq` (mikefarah/yq v4+) available on `PATH`. `yq` is required for in-place merging into existing `custom-patches.yaml` documents (`brew install yq` on macOS).
+- `jq` and `yq` available on `PATH` (`brew install yq`).
 - `k8s-configs/base/custom-patches.yaml` must already exist.
 
 ### Usage
