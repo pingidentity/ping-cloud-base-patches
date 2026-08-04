@@ -12,6 +12,12 @@ if [[ ! -f "${CUSTOM_PATCHES}" ]]; then
   exit 1
 fi
 
+if ! command -v yq >/dev/null 2>&1 || ! yq eval '.' /dev/null >/dev/null 2>&1; then
+  echo "ERROR: yq (mikefarah/yq v4+) is required for in-place patch merging." >&2
+  echo "       Install with 'brew install yq' or see https://github.com/mikefarah/yq." >&2
+  exit 1
+fi
+
 current_context=$(kubectl config current-context 2>/dev/null || true)
 if [[ -z "${current_context}" ]]; then
   echo "ERROR: no kubectl context set. Run 'tsh kube login <cluster>' first." >&2
@@ -69,19 +75,95 @@ matrix=$(kubectl get ingress -n ping-cloud -o json | jq -r '
 echo "${matrix}" | sed "s/present/${RED}present${RESET}/g"
 echo ""
 
-has_snippets=false
-for annotation in "${SNIPPET_ANNOTATIONS[@]}"; do
-  count=$(kubectl get ingress -n ping-cloud -o json | \
-    jq --arg ann "$annotation" '[.items[] | select(.metadata.annotations[$ann] != null)] | length')
-  if [[ "${count}" -gt 0 ]]; then
-    has_snippets=true
-  fi
-done
+# Determine, per controller namespace, whether any ping-cloud ingress with a snippet
+# annotation actually targets that namespace's ingress-nginx controller. Only namespaces
+# that actually serve a snippet-annotated ingress should be patched — patching the other
+# controller unnecessarily widens the security attack surface (annotations-risk-level:
+# Critical relaxes protections that the k8s.io ingress-nginx CVEs specifically address).
+#
+# P1AS convention (hardcoded): ingress-nginx-public → class "nginx-public",
+# ingress-nginx-private → class "nginx-private". If a customer environment renames these,
+# update this mapping. NOTE: kept as parallel indexed arrays instead of `declare -A`
+# so the script works on macOS default bash 3.2.
+NS_TO_CLASS_KEYS=("ingress-nginx-public" "ingress-nginx-private")
+NS_TO_CLASS_VALS=("nginx-public"         "nginx-private")
 
-if [[ "${has_snippets}" == "false" ]]; then
-  echo "No snippet annotations found on any ingress. No ConfigMap patch required."
+class_for_ns() {
+  local target="$1" i
+  for i in "${!NS_TO_CLASS_KEYS[@]}"; do
+    if [[ "${NS_TO_CLASS_KEYS[$i]}" == "${target}" ]]; then
+      echo "${NS_TO_CLASS_VALS[$i]}"
+      return 0
+    fi
+  done
+  return 1
+}
+
+NS_NEEDS_PATCH=()
+AMBIGUOUS_INGRESSES=()
+
+ns_needs_patch() {
+  local target="$1" n
+  for n in "${NS_NEEDS_PATCH[@]}"; do
+    [[ "${n}" == "${target}" ]] && return 0
+  done
+  return 1
+}
+
+# Build the (ingress-name, class) list for ingresses in ping-cloud that carry at least
+# one snippet annotation. class = spec.ingressClassName OR legacy
+# `kubernetes.io/ingress.class` annotation OR empty when neither is set.
+while IFS=$'\t' read -r ing_name ing_class; do
+  [[ -z "${ing_name}" ]] && continue
+  if [[ -z "${ing_class}" ]]; then
+    AMBIGUOUS_INGRESSES+=("${ing_name}")
+    continue
+  fi
+  for i in "${!NS_TO_CLASS_KEYS[@]}"; do
+    if [[ "${NS_TO_CLASS_VALS[$i]}" == "${ing_class}" ]]; then
+      candidate="${NS_TO_CLASS_KEYS[$i]}"
+      if ! ns_needs_patch "${candidate}"; then
+        NS_NEEDS_PATCH+=("${candidate}")
+      fi
+    fi
+  done
+done < <(kubectl get ingress -n ping-cloud -o json | jq -r '
+  .items[]
+  | select(
+      .metadata.annotations["nginx.ingress.kubernetes.io/configuration-snippet"] != null
+      or .metadata.annotations["nginx.ingress.kubernetes.io/server-snippet"]     != null
+      or .metadata.annotations["nginx.ingress.kubernetes.io/location-snippet"]   != null
+      or .metadata.annotations["nginx.ingress.kubernetes.io/stream-snippet"]     != null
+    )
+  | [
+      .metadata.name,
+      (.spec.ingressClassName // .metadata.annotations["kubernetes.io/ingress.class"] // "")
+    ]
+  | @tsv')
+
+if [[ ${#AMBIGUOUS_INGRESSES[@]} -gt 0 ]]; then
+  echo ""
+  echo "${RED}WARNING${RESET}: the following snippet-annotated ingresses have no ingress"
+  echo "class set (neither spec.ingressClassName nor kubernetes.io/ingress.class):"
+  for ing in "${AMBIGUOUS_INGRESSES[@]}"; do
+    echo "  - ${ing}"
+  done
+  echo "These ingresses will NOT be attributed to any controller. Determine which"
+  echo "controller (public or private) serves them and either set the class on the"
+  echo "ingress or re-run this script after doing so. Skipping."
+fi
+
+if [[ ${#NS_NEEDS_PATCH[@]} -eq 0 ]]; then
+  echo ""
+  echo "No snippet-annotated ingress targets a known controller namespace. No patch required."
   exit 0
 fi
+
+echo ""
+echo "=== Controller namespaces that need patching (scoped by ingress class) ==="
+for ns in "${NS_NEEDS_PATCH[@]}"; do
+  echo "  - ${ns} (class: $(class_for_ns "${ns}"))"
+done
 
 # Step 2 + 3: For each nginx namespace, inspect nginx-configuration and, if needed,
 # append the minimal patch to custom-patches.yaml. Expected normal case is that
@@ -90,6 +172,11 @@ fi
 for ns in "${NAMESPACES[@]}"; do
   echo ""
   echo "=== Namespace: ${ns} ==="
+
+  if ! ns_needs_patch "${ns}"; then
+    echo "  -> No snippet-annotated ingress targets class '$(class_for_ns "${ns}")'. Skipping to avoid unnecessary attack-surface increase."
+    continue
+  fi
 
   if ! kubectl get configmap nginx-configuration -n "${ns}" >/dev/null 2>&1; then
     echo "  -> ConfigMap nginx-configuration not found in ${ns}. Skipping."
@@ -117,32 +204,61 @@ for ns in "${NAMESPACES[@]}"; do
     echo "  and may change ingress behavior. Flag this to the team before merging."
   fi
 
-  echo "  -> Appending patch to ${CUSTOM_PATCHES}"
+  # Determine which keys need to be written for this namespace.
+  keys_to_set=()
+  [[ "${allow_snippet}" != "true" ]] && keys_to_set+=("allow-snippet-annotations=true")
+  [[ "${risk_level}"    != "Critical" ]] && keys_to_set+=("annotations-risk-level=Critical")
 
-  last_line=$(grep -v '^[[:space:]]*$' "${CUSTOM_PATCHES}" 2>/dev/null | tail -1 || true)
-  {
-    if [[ "${last_line}" != "---" ]]; then
-      printf '\n---\n'
-    else
-      printf '\n'
-    fi
-    printf 'apiVersion: v1\n'
-    printf 'kind: ConfigMap\n'
-    printf 'metadata:\n'
-    printf '  name: nginx-configuration\n'
-    printf '  namespace: %s\n' "${ns}"
-    printf 'data:\n'
-    [[ "${allow_snippet}" != "true" ]] && printf '  allow-snippet-annotations: "true"\n'
-    [[ "${risk_level}" != "Critical" ]] && printf '  annotations-risk-level: "Critical"\n'
-  } >> "${CUSTOM_PATCHES}"
+  # Check whether custom-patches.yaml already has a ConfigMap/nginx-configuration
+  # document for this namespace. If yes, merge keys in place (preserving any other
+  # keys the existing patch already sets). If no, append a new document.
+  existing_doc_index=$(NS="${ns}" yq eval-all '
+      select(
+        .kind == "ConfigMap" and
+        .metadata.name == "nginx-configuration" and
+        .metadata.namespace == strenv(NS)
+      ) | document_index' "${CUSTOM_PATCHES}" | head -1)
+
+  if [[ -n "${existing_doc_index}" ]]; then
+    echo "  -> Existing nginx-configuration patch for ${ns} found at document ${existing_doc_index}. Merging keys in place."
+    for kv in "${keys_to_set[@]}"; do
+      key="${kv%%=*}"
+      val="${kv#*=}"
+      DOC_IDX="${existing_doc_index}" KEY="${key}" VAL="${val}" yq eval -i '
+        (select(document_index == (strenv(DOC_IDX) | tonumber)).data[strenv(KEY)]) = strenv(VAL)
+      ' "${CUSTOM_PATCHES}"
+      echo "     merged: ${key}: \"${val}\""
+    done
+  else
+    echo "  -> Appending new patch document to ${CUSTOM_PATCHES}"
+    last_line=$(grep -v '^[[:space:]]*$' "${CUSTOM_PATCHES}" 2>/dev/null | tail -1 || true)
+    {
+      if [[ "${last_line}" != "---" ]]; then
+        printf '\n---\n'
+      else
+        printf '\n'
+      fi
+      printf 'apiVersion: v1\n'
+      printf 'kind: ConfigMap\n'
+      printf 'metadata:\n'
+      printf '  name: nginx-configuration\n'
+      printf '  namespace: %s\n' "${ns}"
+      printf 'data:\n'
+      for kv in "${keys_to_set[@]}"; do
+        key="${kv%%=*}"
+        val="${kv#*=}"
+        printf '  %s: "%s"\n' "${key}" "${val}"
+      done
+    } >> "${CUSTOM_PATCHES}"
+  fi
 
   echo "  -> Patch written for ${ns}."
 done
 
 echo ""
 echo "=== Reminder ==="
-echo "If an existing nginx-configuration ConfigMap patch already existed in"
-echo "custom-patches.yaml, review the diff and consider merging keys into the"
-echo "existing block instead of leaving two patches for the same ConfigMap."
-echo "After committing and syncing ArgoCD, re-run the Pre-check commands above"
-echo "and verify the server-block count and hostname list are unchanged."
+echo "Review the diff on ${CUSTOM_PATCHES} — any pre-existing nginx-configuration"
+echo "patch for the same namespace was merged in place, so other keys it sets"
+echo "should still be present. After committing and syncing ArgoCD, re-run the"
+echo "Pre-check commands above and verify the server-block count and hostname"
+echo "list are unchanged."
