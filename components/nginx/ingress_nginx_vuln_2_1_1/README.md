@@ -41,7 +41,7 @@ Newer ingress-nginx builds require both `allow-snippet-annotations: "true"` and 
 
 - Run from the root of the cluster-state-repo (the script derives `CSR_PATH` from its own location, so keep the script inside the CSR root).
 - You must be connected to the target cluster via Teleport (`tsh kube login <cluster>`) before running the script. The script queries the live cluster via `kubectl` and will exit early if no context is set. On start-up it prints the currently connected context — confirm it matches the intended environment before letting the script continue.
-- `jq` available on `PATH`.
+- `jq` and `yq` (mikefarah/yq v4+) available on `PATH`. `yq` is required for in-place merging into existing `custom-patches.yaml` documents (`brew install yq` on macOS).
 - `k8s-configs/base/custom-patches.yaml` must already exist.
 
 ### Usage
@@ -55,21 +55,34 @@ cd <path-to-CSR>
 ### What it does
 
 1. Scans all ingresses in the `ping-cloud` namespace for the four snippet annotations. If none are present, it exits without changes.
-2. For `ingress-nginx-public` and `ingress-nginx-private`, checks the current `allow-snippet-annotations` and `annotations-risk-level` values on the `nginx-configuration` ConfigMap.
-3. For each namespace where either value is not set correctly, appends a strategic-merge patch to `k8s-configs/base/custom-patches.yaml` that sets only the missing/incorrect key(s). The patch looks like:
+2. For each snippet-annotated ingress, reads its ingress class (`spec.ingressClassName` or the legacy `kubernetes.io/ingress.class` annotation) and maps it back to a controller namespace using the P1AS convention:
 
-   ```yaml
-   ---
-   apiVersion: v1
-   kind: ConfigMap
-   metadata:
-     name: nginx-configuration
-     namespace: <ingress-nginx-public | ingress-nginx-private>
-   data:
-     allow-snippet-annotations: "true"
-     annotations-risk-level: "Critical"
-   ```
+   | Ingress class | Controller namespace |
+   |---|---|
+   | `nginx-public` | `ingress-nginx-public` |
+   | `nginx-private` | `ingress-nginx-private` |
+
+   Only namespaces that actually serve a snippet-annotated ingress are considered — patching the other controller is skipped to avoid unnecessarily setting `annotations-risk-level: "Critical"` on it (which would widen the attack surface without justification). Snippet-annotated ingresses with no class set are flagged with a `WARNING` and skipped; determine which controller they belong to (set `spec.ingressClassName` or the legacy annotation on the ingress) and re-run.
+
+3. For each in-scope namespace, checks the current `allow-snippet-annotations` and `annotations-risk-level` values on the `nginx-configuration` ConfigMap.
+4. For each namespace where either value is not set correctly, writes only the missing/incorrect key(s) into `k8s-configs/base/custom-patches.yaml`:
+
+   - **If a `ConfigMap/nginx-configuration` patch document for that namespace already exists**, the script merges the missing key(s) *in place* into that document (via `yq`). Any other keys the pre-existing patch sets (e.g., `http-snippet`, `proxy-buffer-size`) are preserved.
+   - **If no such document exists**, a new document is appended, e.g.:
+
+     ```yaml
+     ---
+     apiVersion: v1
+     kind: ConfigMap
+     metadata:
+       name: nginx-configuration
+       namespace: <ingress-nginx-public | ingress-nginx-private>
+     data:
+       annotations-risk-level: "Critical"
+     ```
+
+   The normal case is that `allow-snippet-annotations: "true"` is already applied as an earlier custom patch (otherwise nginx would be ignoring the snippet today), so only `annotations-risk-level: "Critical"` needs to be added.
 
 After the script runs, review the diff on `custom-patches.yaml`, commit, push, and sync ArgoCD as described in the runbook.
 
-> **Note:** If a prior patch for `nginx-configuration` already exists in `custom-patches.yaml`, update the existing block in place instead of appending a duplicate — otherwise the last patch wins and previously-set keys may be dropped.
+> **Note:** The in-place merge means running the script twice is safe — it will not create duplicate documents. If two `nginx-configuration` documents already existed for the same namespace before the script ran (e.g., from manual edits), consolidate them by hand first: kustomize applies only the last matching document and discards keys from earlier ones.

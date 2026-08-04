@@ -12,9 +12,8 @@ if [[ ! -f "${CUSTOM_PATCHES}" ]]; then
   exit 1
 fi
 
-if ! command -v yq >/dev/null 2>&1 || ! yq eval '.' /dev/null >/dev/null 2>&1; then
-  echo "ERROR: yq (mikefarah/yq v4+) is required for in-place patch merging." >&2
-  echo "       Install with 'brew install yq' or see https://github.com/mikefarah/yq." >&2
+if ! command -v yq >/dev/null 2>&1; then
+  echo "ERROR: yq is required. Install it (e.g., 'brew install yq')." >&2
   exit 1
 fi
 
@@ -75,16 +74,8 @@ matrix=$(kubectl get ingress -n ping-cloud -o json | jq -r '
 echo "${matrix}" | sed "s/present/${RED}present${RESET}/g"
 echo ""
 
-# Determine, per controller namespace, whether any ping-cloud ingress with a snippet
-# annotation actually targets that namespace's ingress-nginx controller. Only namespaces
-# that actually serve a snippet-annotated ingress should be patched — patching the other
-# controller unnecessarily widens the security attack surface (annotations-risk-level:
-# Critical relaxes protections that the k8s.io ingress-nginx CVEs specifically address).
-#
-# P1AS convention (hardcoded): ingress-nginx-public → class "nginx-public",
-# ingress-nginx-private → class "nginx-private". If a customer environment renames these,
-# update this mapping. NOTE: kept as parallel indexed arrays instead of `declare -A`
-# so the script works on macOS default bash 3.2.
+# Only patch controllers that actually serve a snippet-annotated ingress.
+# P1AS convention: ingress-nginx-public → "nginx-public", ingress-nginx-private → "nginx-private".
 NS_TO_CLASS_KEYS=("ingress-nginx-public" "ingress-nginx-private")
 NS_TO_CLASS_VALS=("nginx-public"         "nginx-private")
 
