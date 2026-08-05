@@ -41,3 +41,21 @@ patches:
             containers:
               - name: nginx-ingress-controller
                 image: public.ecr.aws/r2h3l6e4/pingcloud-services/sigsci-nginx-ingress-controller:v2.1.1
+  # Upstream flipped --enable-metrics default from true (v1.11.2) to false (v1.14+).
+  # The chainguard fork used above inherits false, so re-enable explicitly.
+  - target:
+      kind: Deployment
+      name: nginx-ingress-controller
+      namespace: ingress-nginx-private
+    patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: --enable-metrics=true
+  - target:
+      kind: Deployment
+      name: nginx-ingress-controller
+      namespace: ingress-nginx-public
+    patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: --enable-metrics=true
