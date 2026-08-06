@@ -216,7 +216,7 @@ for ns in "${NAMESPACES[@]}"; do
       key="${kv%%=*}"
       val="${kv#*=}"
       DOC_IDX="${existing_doc_index}" KEY="${key}" VAL="${val}" yq eval -i '
-        (select(document_index == (strenv(DOC_IDX) | tonumber)).data[strenv(KEY)]) = strenv(VAL)
+        (select(document_index == env(DOC_IDX)).data[strenv(KEY)]) = strenv(VAL)
       ' "${CUSTOM_PATCHES}"
       echo "     merged: ${key}: \"${val}\""
     done
