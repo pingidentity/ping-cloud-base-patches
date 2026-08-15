@@ -36,7 +36,7 @@ spec:
               topologyKey: topology.kubernetes.io/zone
       initContainers:
       - name: seed-logstash
-        image: public.ecr.aws/r2h3l6e4/pingcloud-monitoring/logstash/dev:v2.3-release-branch-latest
+        image: public.ecr.aws/r2h3l6e4/pingcloud-monitoring/logstash:v2.3.0-RC2
         command:
         - sh
         - -c
@@ -81,7 +81,7 @@ spec:
             cpu: "150m"
             memory: 100Mi
       - name: logstash
-        image: public.ecr.aws/r2h3l6e4/pingcloud-monitoring/logstash/dev:v2.3-release-branch-latest
+        image: public.ecr.aws/r2h3l6e4/pingcloud-monitoring/logstash:v2.3.0-RC2
         imagePullPolicy: Always
         command:
         - /bin/sh
@@ -140,7 +140,7 @@ spec:
             configMapKeyRef:
               name: s3-telemetry-bucket
               key: bucketName
-        - name: S3_BUCKET_NAME_HIPAA
+        - name: HIPAA_BUCKET_NAME
           valueFrom:
             configMapKeyRef:
               name: s3-hipaa-bucket
