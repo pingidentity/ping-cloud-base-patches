@@ -2,6 +2,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: logstash-elastic-compliance
+  namespace: elastic-stack-logging
 spec:
   behavior:
     scaleDown:
