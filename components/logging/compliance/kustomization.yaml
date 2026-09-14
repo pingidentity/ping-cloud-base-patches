@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+components:
+- logstash/base
+- hipaa/fluentbit
+- hipaa/logstash
+- lake/fluentbit
+- lake/logstash
+- logstash/both
