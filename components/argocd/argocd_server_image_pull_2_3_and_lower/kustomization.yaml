@@ -5,14 +5,14 @@ kind: Component
 
 patches:
   - patch: |-
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      name: argocd-repo-server
-      namespace: argocd
-    spec:
-      template:
-        spec:
-          initContainers:
-            - name: install-custom-tools
-              imagePullPolicy: Always
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: argocd-repo-server
+        namespace: argocd
+      spec:
+        template:
+          spec:
+            initContainers:
+              - name: install-custom-tools
+                imagePullPolicy: Always
