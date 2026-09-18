@@ -100,17 +100,3 @@ spec:
         hostPath:
           path: /var/log/dmesg
 
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: fluent-bit-pipeline-s3
-  namespace: elastic-stack-logging
-$patch: delete
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: fluent-bit-pipeline-customer
-  namespace: elastic-stack-logging
-$patch: delete
