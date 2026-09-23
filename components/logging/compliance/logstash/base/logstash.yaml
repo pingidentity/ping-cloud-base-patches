@@ -121,7 +121,7 @@ spec:
           value: /usr/share/logstash/data/tmp
         - name: LS_JAVA_OPTS
           value: >-
-            -Xms1g -Xmx1g -XX:MaxDirectMemorySize=512m
+            -Xms1500m -Xmx1500m -XX:MaxDirectMemorySize=512m
             -Djava.io.tmpdir=/usr/share/logstash/data/tmp
         - name: XPACK_MONITORING_ENABLED
           value: "false"

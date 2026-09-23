@@ -18,7 +18,8 @@ data:
       queue.max_bytes: 10gb
       queue.drain: true
       queue.checkpoint.writes: 128
-      dead_letter_queue.enable: false
+      path.queue: /usr/share/logstash/data/queue/s3
+      # DLQ omitted: S3 output does not route upload failures to Logstash DLQ.
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -145,7 +146,7 @@ spec:
               # Point Java/JRuby to a sub-folder inside our writable volume
               # This bypasses the world-writable /tmp logstash warning entirely
               value: >-
-                -Xms1g -Xmx1g -XX:MaxDirectMemorySize=512m
+                -Xms1500m -Xmx1500m -XX:MaxDirectMemorySize=512m
                 -Djava.io.tmpdir=/usr/share/logstash/data/tmp 
                 -Dlogstash.geoip.database.path=/usr/share/logstash/data/plugins/filters/geoip
             - name: XPACK_MONITORING_ENABLED
@@ -199,10 +200,10 @@ spec:
             # Ensures dedicated CPU & Mem reservation for Logstash to avoid
             # CPU throttling &noisy-neighbor interference
             limits:
-              cpu: "1"
+              cpu: "750m"
               memory: 5Gi
             requests:
-              cpu: "1"
+              cpu: "750m"
               memory: 5Gi
           ports:
             - containerPort: 9600

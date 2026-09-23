@@ -11,7 +11,7 @@ spec:
         env:
         - name: LS_JAVA_OPTS
           value: >-
-            -Xms2g -Xmx2g -XX:MaxDirectMemorySize=1g
+            -Xms1500m -Xmx1500m -XX:MaxDirectMemorySize=512m
             -Djava.io.tmpdir=/usr/share/logstash/data/tmp
         readinessProbe:
           httpGet:
