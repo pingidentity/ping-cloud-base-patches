@@ -12,7 +12,7 @@ data:
     - pipeline.id: s3
       path.config: "/usr/share/logstash/pipeline/s3"
       pipeline.workers: 2
-      pipeline.batch.size: 500
+      pipeline.batch.size: 1000
       pipeline.batch.delay: 50
       queue.type: persisted
       queue.max_bytes: 10gb

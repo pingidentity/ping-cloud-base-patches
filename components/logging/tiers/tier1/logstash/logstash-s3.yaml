@@ -142,7 +142,7 @@ spec:
             - name: TMPDIR
               value: "/usr/share/logstash/data/tmp"
             - name: LS_JAVA_OPTS
-              # Heap/direct split sized for stable GC and IO buffer headroom.
+              # Heap/direct split sized for a 3Gi pod with IO headroom.
               # Point Java/JRuby to a sub-folder inside our writable volume
               # This bypasses the world-writable /tmp logstash warning entirely
               value: >-
@@ -201,10 +201,10 @@ spec:
             # CPU throttling &noisy-neighbor interference
             limits:
               cpu: "750m"
-              memory: 5Gi
+              memory: 3Gi
             requests:
               cpu: "750m"
-              memory: 5Gi
+              memory: 3Gi
           ports:
             - containerPort: 9600
               name: rest
