@@ -18,8 +18,7 @@ data:
       queue.max_bytes: 10gb
       queue.drain: true
       queue.checkpoint.writes: 512
-      path.queue: /usr/share/logstash/data/queue/s3
-      # DLQ omitted: S3 output does not route upload failures to Logstash DLQ.
+      dead_letter_queue.enable: false
 ---
 apiVersion: apps/v1
 kind: StatefulSet

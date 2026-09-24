@@ -12,7 +12,7 @@ data:
     - pipeline.id: main
       path.config: "/usr/share/logstash/pipeline/main"
       pipeline.workers: 2
-      pipeline.batch.size: 750
+      pipeline.batch.size: 2000
       pipeline.batch.delay: 50
       queue.type: persisted
       queue.max_bytes: 10gb

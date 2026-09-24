@@ -11,31 +11,31 @@ data:
   pipelines.yml: |
     - pipeline.id: main
       path.config: "/usr/share/logstash/pipeline/main"
-      pipeline.workers: 2
-      pipeline.batch.size: 750
-      pipeline.batch.delay: 50
+      pipeline.workers: 4
+      pipeline.batch.size: 2000
+      pipeline.batch.delay: 100
       queue.type: persisted
       queue.max_bytes: 10gb
       queue.drain: true
-      queue.checkpoint.writes: 256
+      queue.checkpoint.writes: 512
       dead_letter_queue.enable: true
       dead_letter_queue.max_bytes: 5gb
 
     - pipeline.id: customer
       path.config: "/usr/share/logstash/pipeline/customer"
-      pipeline.workers: 2
-      pipeline.batch.size: 500
-      pipeline.batch.delay: 50
+      pipeline.workers: 3
+      pipeline.batch.size: 2000
+      pipeline.batch.delay: 100
       queue.type: persisted
       queue.max_bytes: 10gb
       queue.drain: true
-      queue.checkpoint.writes: 256
+      queue.checkpoint.writes: 1024
       dead_letter_queue.enable: false # Intentional — external endpoint, failures dropped by design.
 
     - pipeline.id: dlq
       path.config: "/usr/share/logstash/pipeline/dlq"
       pipeline.workers: 1
-      pipeline.batch.size: 100
+      pipeline.batch.size: 500
       pipeline.batch.delay: 50
       queue.type: persisted
       queue.max_bytes: 5gb
@@ -259,7 +259,7 @@ spec:
               # Point Java/JRuby to a sub-folder inside our writable volume
               # This bypasses the world-writable /tmp logstash warning entirely
               value: >-
-                -Xms4g -Xmx4g -XX:MaxDirectMemorySize=1g
+                -Xms10g -Xmx10g -XX:MaxDirectMemorySize=2g
                 -Djava.io.tmpdir=/usr/share/logstash/data/tmp 
                 -Dlogstash.geoip.database.path=/usr/share/logstash/data/plugins/filters/geoip
             - name: XPACK_MONITORING_ENABLED
@@ -318,11 +318,11 @@ spec:
             # Ensures dedicated CPU & Mem reservation for Logstash to avoid
             # CPU throttling &noisy-neighbor interference
             limits:
-              cpu: "2"
-              memory: 8Gi
+              cpu: "6"
+              memory: 16Gi
             requests:
-              cpu: "2"
-              memory: 8Gi
+              cpu: "6"
+              memory: 16Gi
           ports:
             - containerPort: 9600
               name: rest
