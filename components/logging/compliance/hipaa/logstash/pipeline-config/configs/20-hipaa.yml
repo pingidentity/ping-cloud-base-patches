@@ -3,4 +3,5 @@
   queue.type: persisted
   queue.max_bytes: 500mb
   queue.checkpoint.writes: 1000
+  # DLQ omitted: S3 output does not route upload failures to Logstash DLQ.
   path.queue: /data/pq/hipaa

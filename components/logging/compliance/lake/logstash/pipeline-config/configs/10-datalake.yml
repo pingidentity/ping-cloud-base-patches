@@ -1,6 +1,11 @@
 - pipeline.id: datalake
   path.config: "/etc/logstash/conf.d/datalake.conf"
+  pipeline.workers: 1
+  pipeline.batch.size: 250
+  pipeline.batch.delay: 50
   queue.type: persisted
   queue.max_bytes: 1500mb
-  queue.checkpoint.writes: 1000
+  queue.drain: true
+  queue.checkpoint.writes: 128
+  # DLQ omitted: S3 output does not route upload failures to Logstash DLQ.
   path.queue: /data/pq/datalake
