@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluent-bit
+spec:
+  template:
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: fluent-bit
+          resources:
+            limits:
+              cpu: "1"
+              memory: 3Gi
+            requests:
+              cpu: "1"
+              memory: 3Gi
