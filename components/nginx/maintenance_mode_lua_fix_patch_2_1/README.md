@@ -4,7 +4,7 @@ Fixes ingress-nginx config reload failures (`[emerg] Lua code block missing the 
 
 ## Root cause
 
-The controller's config re-indenter (`cleanConf` in `internal/ingress/controller/template/template.go`) treats `#` as a comment marker even inside Lua long-bracket `[[ ]]` strings. The maintenance-mode HTML page in the `ingress-nginx-public` `location-snippet` contained `#` CSS hex colors, so each rendered server block leaked one indentation level. Indentation depth scales with ingress host count, and once the indented `access_by_lua_block` exceeds nginx's 4096-byte config token buffer, every reload fails and the controller crashloops.
+The controller's config indenter (`cleanConf` in `internal/ingress/controller/template/template.go`) treats `#` as a comment marker even inside Lua long-bracket `[[ ]]` strings. The maintenance-mode HTML page in the `ingress-nginx-public` `location-snippet` contained `#` CSS hex colors, so each rendered server block leaked one indentation level. Indentation depth scales with ingress host count, and once the indented `access_by_lua_block` exceeds nginx's 4096-byte config token buffer, every reload fails and the controller crashloops.
 
 Replacing the hex colors with `rgb()` values removes the `#` characters from the Lua string, so the re-indenter's depth tracking stays correct regardless of host count.
 

@@ -36,6 +36,7 @@ See the Confluence [Component Patch Homepage](https://pingidentity.atlassian.net
 | `components/xxl_patches_1_19/logstash` | Increased resource limits/requests and HPA ranges for Logstash | 1.19.2 |
 | `components/xxl_patches_1_19/fluent-bit` | Increased resource limits/requests and HPA ranges for Fluent Bit | 1.19.2 |
 | `components/xxl_patches_1_19/prometheus` | Increased resource limits/requests and HPA ranges for Prometheus | 1.19.2 |
+| `components/nginx/maintenance_mode_lua_fix_patch_2_1` | Fixes CSS hex color so `#` symbol is not used | 2.1.5 |
 
 ## Contributing
 
