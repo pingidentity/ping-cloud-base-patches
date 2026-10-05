@@ -16,14 +16,14 @@ Replacing the hex colors with `rgb()` values removes the `#` characters from the
 
 ```yaml
 components:
-  - github.com/pingidentity/p1as-eng-base-patches//components/nginx/maintenance_mode_lua_fix_patch_2_1
+  - github.com/pingidentity/ping-cloud-base-patches//components/nginx/maintenance_mode_lua_fix_patch_2_1
 ```
 
 When testing, you may also add the branch name as shown below.
 
 ```yaml
 components:
-  - github.com/pingidentity/p1as-eng-base-patches//components/nginx/maintenance_mode_lua_fix_patch_2_1?ref=pdo-12367
+  - github.com/pingidentity/ping-cloud-base-patches//components/nginx/maintenance_mode_lua_fix_patch_2_1?ref=pdo-12367
 ```
 
 4. Sync ArgoCD in all regions.
