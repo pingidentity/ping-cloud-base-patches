@@ -145,6 +145,11 @@ spec:
             configMapKeyRef:
               name: s3-hipaa-bucket
               key: bucketName
+        - name: CUSTOMER_METADATA
+          valueFrom:
+            configMapKeyRef:
+              name: customer-metadata
+              key: customer-metadata
         envFrom:
         - configMapRef:
             name: elk-environment-variables
