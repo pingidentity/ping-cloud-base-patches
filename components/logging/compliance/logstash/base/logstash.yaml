@@ -145,7 +145,6 @@ spec:
             configMapKeyRef:
               name: s3-hipaa-bucket
               key: bucketName
-              optional: true
         - name: CUSTOMER_METADATA
           valueFrom:
             configMapKeyRef:
