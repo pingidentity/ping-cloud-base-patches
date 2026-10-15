@@ -8,6 +8,12 @@ spec:
     spec:
       containers:
       - name: logstash
+        env:
+        - name: TELEMETRY_BUCKET_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: s3-telemetry-bucket
+              key: bucketName
         readinessProbe:
           httpGet:
             port: 8085

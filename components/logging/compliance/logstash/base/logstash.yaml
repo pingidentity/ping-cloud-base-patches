@@ -121,7 +121,7 @@ spec:
           value: /usr/share/logstash/data/tmp
         - name: LS_JAVA_OPTS
           value: >-
-            -Xms1g -Xmx1g -XX:MaxDirectMemorySize=512m
+            -Xms1000m -Xmx1000m -XX:MaxDirectMemorySize=512m
             -Djava.io.tmpdir=/usr/share/logstash/data/tmp
         - name: XPACK_MONITORING_ENABLED
           value: "false"
@@ -135,16 +135,6 @@ spec:
             configMapKeyRef:
               name: cluster-info
               key: cluster.name
-        - name: TELEMETRY_BUCKET_NAME
-          valueFrom:
-            configMapKeyRef:
-              name: s3-telemetry-bucket
-              key: bucketName
-        - name: HIPAA_BUCKET_NAME
-          valueFrom:
-            configMapKeyRef:
-              name: s3-hipaa-bucket
-              key: bucketName
         envFrom:
         - configMapRef:
             name: elk-environment-variables
