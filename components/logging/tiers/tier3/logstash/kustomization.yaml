@@ -6,4 +6,3 @@ patches:
 - path: logstash-s3.yaml
 - path: hpa.yaml
 - path: storage.yaml
-- path: storage-s3.yaml
