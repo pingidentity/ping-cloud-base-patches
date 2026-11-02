@@ -1,0 +1,28 @@
+# Patch: teleport_autoupgrade_patch
+# Ticket: PDO-11850
+#
+# Purpose: Prevents ArgoCD from rolling back Teleport's container image to the
+# Helm-pinned version after Teleport's auto-updater changes it in-cluster.
+# Adds an ignoreDifferences entry on the ping-cloud-all-cdes-per-app ApplicationSet
+# so ArgoCD tolerates the live image diverging from the desired state.
+#
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+patches:
+  - target:
+      group: argoproj.io
+      version: v1alpha1
+      kind: ApplicationSet
+      name: ping-cloud-all-cdes-per-app
+      namespace: argocd
+    patch: |
+      - op: add
+        path: /spec/template/spec/ignoreDifferences/-
+        value:
+          group: apps
+          kind: StatefulSet
+          name: teleport
+          namespace: teleport
+          jqPathExpressions:
+            - .spec.template.spec.containers[].image
