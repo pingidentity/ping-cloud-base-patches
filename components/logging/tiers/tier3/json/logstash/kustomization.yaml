@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+patches:
+- path: logstash.yaml
+- path: logstash-s3.yaml
+- path: hpa.yaml
+- path: storage.yaml
