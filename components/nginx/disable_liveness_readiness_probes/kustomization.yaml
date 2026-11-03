@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: ingress-nginx
+        namespace: ingress-nginx-public
+      spec:
+        template:
+          spec:
+            containers:
+              - name: controller
+                livenessProbe: null
+                readinessProbe: null
