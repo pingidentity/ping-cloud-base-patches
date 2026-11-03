@@ -26,6 +26,7 @@ See the Confluence [Component Patch Homepage](https://pingidentity.atlassian.net
 | `components/nginx_configmap_patch_1_18` | Configures ingress-nginx-public: SigSci module, worker tuning, upstream log format, SSL ciphers | 1.18 |
 | `components/nginx_configmap_patch_1_19` | Configures ingress-nginx-public: SigSci module, worker tuning, upstream log format, SSL ciphers | 1.19 |
 | `components/remove_modsecurity_ingress_patch_2_2` | Removes modsecurity annotations from all ingress resources after ingress-nginx 1.14.4 upgrade | 2.2+ |
+| `components/teleport/teleport_argocd_patch` | Adds ArgoCD `ignoreDifferences` so Teleport's auto-updater image changes aren't rolled back (PDO-11850) | All |
 | `components/pingaccess/sync_admin_engine_certs_patch` | CronJob that detects admin cert changes and restarts engine pods to reload (PA and PA-WAS) | All |
 | `components/sigsci_agent` | Tunes SigSci sidecar CPU, nginx-ingress-controller resources, and HPA scaling | v1.19, 2.0.x, 2.1 |
 | `components/xxl_patches_1_19/pingfederate` | Increased resource limits/requests and HPA ranges for PingFederate | 1.19.2 |
