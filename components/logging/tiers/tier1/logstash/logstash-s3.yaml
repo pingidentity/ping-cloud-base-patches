@@ -254,7 +254,7 @@ spec:
       spec:
         accessModes:
           - ReadWriteOnce
-        storageClassName: logstash-gp3
+        storageClassName: logstash-s3-gp3
         resources:
           requests:
             storage: 20Gi
