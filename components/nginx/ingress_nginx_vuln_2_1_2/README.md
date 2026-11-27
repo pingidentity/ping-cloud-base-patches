@@ -1,9 +1,10 @@
-# ingress-nginx Vulnerability Patch (K000161019) — P1AS v2.1.2
+# ingress-nginx Vulnerability Patch (K000161019, NGINX2Root / CVE-2026-123007) — P1AS v2.1.2
 
 Addresses CVE K000161019 for customers on P1AS `v2.1.2` by:
 
 - Updating the `nginx-ingress-controller` image (both public and private) to the Chainguard-based fork `v2.1.2-RC1`, which does not contain the vulnerability
 - Removing modsecurity annotations from the `pingaccess-was-ingress` ingress object
+- Adding `--enable-metrics=true` to both controllers, because the fork defaults metrics to `false`, which leaves the ingress Grafana dashboards empty
 
 ## Usage
 
@@ -29,6 +30,6 @@ components:
 
 | Resource | Namespace | Change |
 |---|---|---|
-| `Deployment/nginx-ingress-controller` | `ingress-nginx-private` | Updates image to Chainguard fork `v2.1.2-RC1` |
-| `Deployment/nginx-ingress-controller` | `ingress-nginx-public` | Updates image to Chainguard fork `v2.1.2-RC1` |
+| `Deployment/nginx-ingress-controller` | `ingress-nginx-private` | Updates image to Chainguard fork `v2.1.2-RC1`; adds `--enable-metrics=true` to the controller args |
+| `Deployment/nginx-ingress-controller` | `ingress-nginx-public` | Updates image to Chainguard fork `v2.1.2-RC1`; adds `--enable-metrics=true` to the controller args |
 | `Ingress/pingaccess-was-ingress` | `ping-cloud` | Removes `enable-modsecurity` and `modsecurity-snippet` annotations |
