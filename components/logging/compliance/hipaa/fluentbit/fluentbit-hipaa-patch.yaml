@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluent-bit
+  namespace: elastic-stack-logging
+spec:
+  template:
+    spec:
+      containers:
+      - name: fluent-bit
+        volumeMounts:
+        - name: fluent-bit-pipeline-hipaa
+          mountPath: /fluent-bit/etc/pipeline-hipaa.conf
+          subPath: pipeline-hipaa.conf
+      volumes:
+      - name: fluent-bit-pipeline-hipaa
+        configMap:
+          name: fluent-bit-pipeline-hipaa
